@@ -1,0 +1,102 @@
+name: RadiantEngine
+version: '${project.version}'
+main: dev.privalo.radiantengine.RadiantEngine
+api-version: '1.21'
+author: Privalo21
+website: https://github.com/TTVPrivalo21/RadiantEngine
+description: Blockbench models rendered with Display Entities for Paper/Spigot 1.21.x - 26.x
+softdepend:
+  - Oraxen
+  - MythicMobs
+  - Citizens
+  - FancyNpcs
+  - ZNPCsPlus
+  - WorldGuard
+  - PlaceholderAPI
+commands:
+  radiant:
+    description: Comandos de RadiantEngine.
+    aliases: [re, rengine]
+    usage: /<command> help
+permissions:
+  radiantengine.*:
+    description: Acceso total a RadiantEngine.
+    default: op
+    children:
+      radiantengine.admin: true
+  radiantengine.admin:
+    description: Todos los comandos de RadiantEngine.
+    default: op
+    children:
+      radiantengine.command.help: true
+      radiantengine.command.reload: true
+      radiantengine.command.list: true
+      radiantengine.command.spawn: true
+      radiantengine.command.summon: true
+      radiantengine.command.apply: true
+      radiantengine.command.remove: true
+      radiantengine.command.kill: true
+      radiantengine.command.disguise: true
+      radiantengine.command.disguise.others: true
+      radiantengine.command.undisguise: true
+      radiantengine.command.playanim: true
+      radiantengine.command.tint: true
+      radiantengine.command.mount: true
+      radiantengine.command.npc: true
+      radiantengine.command.holo: true
+      radiantengine.command.gui: true
+      radiantengine.bypass.region: true
+  radiantengine.command.help:
+    description: Ver la ayuda.
+    default: true
+  radiantengine.command.reload:
+    description: /radiant reload [models|config|pack]
+    default: op
+  radiantengine.command.list:
+    description: /radiant list e info
+    default: op
+  radiantengine.command.spawn:
+    description: /radiant spawn
+    default: op
+  radiantengine.command.summon:
+    description: /radiant summon
+    default: op
+  radiantengine.command.apply:
+    description: /radiant apply
+    default: op
+  radiantengine.command.remove:
+    description: /radiant remove
+    default: op
+  radiantengine.command.kill:
+    description: /radiant kill y killall
+    default: op
+  radiantengine.command.disguise:
+    description: /radiant disguise y selfview
+    default: op
+  radiantengine.command.disguise.others:
+    description: Disfrazar a otros jugadores
+    default: op
+  radiantengine.command.undisguise:
+    description: /radiant undisguise
+    default: op
+  radiantengine.command.playanim:
+    description: /radiant playanim y stopanim
+    default: op
+  radiantengine.command.tint:
+    description: /radiant tint
+    default: op
+  radiantengine.command.mount:
+    description: /radiant mount y dismount
+    default: op
+  radiantengine.command.npc:
+    description: /radiant npc
+    default: op
+  radiantengine.command.holo:
+    description: /radiant holo
+    default: op
+  radiantengine.command.gui:
+    description: /radiant gui
+    default: op
+  radiantengine.bypass.region:
+    description: Ignora los flags de WorldGuard de RadiantEngine
+    default: op

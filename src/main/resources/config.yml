@@ -1,0 +1,274 @@
+# =====================================================================
+#   RadiantEngine - configuracion
+#   Coloca tus archivos .bbmodel en plugins/RadiantEngine/blueprints/
+#   (se admiten subcarpetas) y usa /radiant reload para importarlos.
+#   Todos los textos usan MiniMessage: https://docs.advntr.dev/minimessage/format
+# =====================================================================
+
+# Namespace usado dentro del resource pack (assets/<namespace>/...)
+namespace: radiantengine
+debug: false
+
+generator:
+  # Item base sobre el que se registran los modelos. Debe ser tintable (cuero) para que el tinte funcione.
+  base-item: LEATHER_HORSE_ARMOR
+  # Primer CustomModelData asignado. Los IDs se guardan en cmd-cache.yml para que sean estables.
+  custom-model-data-start: 10000
+  # Genera resource_pack.zip ademas de la carpeta resource_pack/
+  create-zip: true
+  pack-description: "RadiantEngine resource pack"
+  # Rango maximo (en pixeles desde el pivote) antes de reducir el modelo JSON y compensar con escala.
+  max-element-extent: 24.0
+
+render:
+  # Ticks de interpolacion nativa de la Transformation de cada hueso (1-3 recomendado)
+  interpolation-ticks: 2
+  # Ticks de interpolacion de teletransporte de las Display Entities
+  teleport-ticks: 2
+  # Multiplicador de distancia de vision de los displays (1.0 = 64 bloques)
+  view-range: 1.0
+  # Distancia minima de movimiento antes de reenviar posiciones
+  move-threshold: 0.0005
+
+oraxen:
+  # Si Oraxen esta instalado, exporta los huesos como items de Oraxen y copia los assets a su pack.
+  enabled: true
+  items-file: radiantengine_models.yml
+  # Usar OraxenItems.getItemById(...) para construir los items de los huesos (respeta el CMD asignado por Oraxen)
+  use-oraxen-items: true
+  # Comando ejecutado cuando cambian los assets exportados (vacio = no ejecutar nada)
+  reload-command: "oraxen reload all"
+
+model:
+  damage-tint: true
+  damage-tint-color: "FF6B6B"
+  damage-tint-ticks: 6
+  # Giro maximo de huesos h_ (cabeza) respecto al cuerpo, en grados
+  head-max-yaw: 75.0
+  # Velocidad horizontal (bloques/tick) a partir de la cual se considera que camina
+  walk-threshold: 0.015
+  # Crea una Interaction con el tamaño del hueso "hitbox" del modelo
+  main-hitbox: true
+  # Si el modelo tiene huesos tag_, oculta el nombre vanilla de la entidad base
+  hide-vanilla-name-with-tag: true
+
+# Estados automaticos -> animacion de Blockbench que se reproduce
+states:
+  idle:   { animation: idle,   lerp-in: 0.25, lerp-out: 0.25, speed: 1.0 }
+  walk:   { animation: walk,   lerp-in: 0.25, lerp-out: 0.25, speed: 1.0 }
+  jump:   { animation: jump,   lerp-in: 0.15, lerp-out: 0.15, speed: 1.0 }
+  fly:    { animation: fly,    lerp-in: 0.25, lerp-out: 0.25, speed: 1.0 }
+  attack: { animation: attack, lerp-in: 0.05, lerp-out: 0.15, speed: 1.0 }
+  death:  { animation: death,  lerp-in: 0.15, lerp-out: 0.0,  speed: 1.0 }
+  spawn:  { animation: spawn,  lerp-in: 0.0,  lerp-out: 0.25, speed: 1.0 }
+
+spawn:
+  # Entidad base usada por /radiant spawn cuando no se indica otra
+  default-entity: husk
+  silent: false
+  # Hace invisible la entidad base (el modelo la sustituye visualmente)
+  hide-base: true
+  clear-equipment: true
+
+disguise:
+  # Como ve el jugador disfrazado su propio modelo:
+  #   HEADLESS = todo menos los huesos h_ (cabeza) y nametags: completo en F5 y sin tapar la primera persona
+  #   FULL     = modelo completo
+  #   NONE     = oculto para el propio jugador
+  # Cada jugador puede cambiarlo con /radiant selfview <full|headless|none>
+  self-view: HEADLESS
+  # INVISIBILITY (efecto de pocion) o HIDE (oculta la entidad del jugador a los demas)
+  hide-mode: INVISIBILITY
+  # Restaurar el disfraz al reconectar
+  persist: true
+
+mount:
+  speed: 0.28
+  jump-strength: 0.55
+  # Desplazamiento vertical del asiento respecto al hueso p_/mount
+  seat-offset-y: -0.4
+  # Click derecho sobre un modelo con asientos libres para montar
+  right-click-to-mount: false
+
+npc:
+  # Oculta el NPC original (Citizens: invisibilidad; FancyNpcs/ZNPCsPlus: no se envia la entidad de paquetes)
+  hide-original: true
+  # Cada cuantos ticks se revisan los NPCs (posicion, chunk cargado, modelo presente)
+  sync-interval: 20
+
+holograms:
+  # Valores usados al crear un holograma (cada holograma guarda los suyos en holograms.yml)
+  defaults:
+    # Grados por segundo en modo SPIN
+    spin-speed: 30.0
+    # Flotacion senoidal (bloques) y duracion de un ciclo (segundos)
+    bob-amplitude: 0.08
+    bob-period: 3.0
+    # Altura del modelo sobre el punto del pedestal
+    float-height: 0.35
+    # Tinte holografico (RRGGBB) o "" para los colores originales
+    tint: "7FE9FF"
+    # Brillo maximo (Brightness 15/15) para que no dependa de la luz del mundo
+    fullbright: true
+    # Contorno brillante y su color
+    glowing: false
+    glow-color: "00E5FF"
+    ring:
+      enabled: true
+      # Particula del anillo del pedestal (end_rod, electric_spark, dust, soul_fire_flame...)
+      particle: end_rod
+      radius: 0.6
+      points: 18
+      # Cada cuantos ticks se dibuja
+      interval: 10
+  # Separacion del texto respecto al modelo
+  text-offset: 0.3
+  # Cada cuantos ticks se actualizan los placeholders del texto
+  text-refresh-ticks: 20
+  # Tiempo minimo entre clics de un jugador
+  click-cooldown-ms: 500
+
+worldguard:
+  # Mensajes cuando un flag bloquea una accion. Flags: radiant-allow-spawn, radiant-allow-mounts
+  enabled: true
+
+placeholderapi:
+  # Texto devuelto cuando no hay disfraz / montura
+  none: "ninguno"
+
+# Vincula huesos item_/ir_/il_/ih_ a un item.  "<modelo>.<hueso>": "oraxen:<id>" | "minecraft:<material>"
+item-links:
+  example_model.sword: "minecraft:diamond_sword"
+
+scripts:
+  # Permite keyframes de timeline "cmd:<comando>" en las animaciones
+  allow-commands: true
+
+gui:
+  # Fondo personalizado dibujado con una fuente del resource pack (requiere Paper y el pack cargado)
+  custom-texture: true
+  textured-title: "<white>Modelos</white> <dark_gray>»</dark_gray> <aqua>{page}</aqua><gray>/</gray><aqua>{pages}</aqua>"
+  # Titulo usado sin textura personalizada (Spigot o custom-texture: false)
+  title: "<dark_gray>Modelos</dark_gray> <gray>({page}/{pages})</gray>"
+  use-model-icons: true
+  preview-seconds: 10
+
+messages:
+  prefix: "<gradient:#00E5FF:#3B82F6><bold>RadiantEngine</bold></gradient> <dark_gray>»</dark_gray> <gray>"
+  no-permission: "<red>No tienes permiso para hacer eso."
+  players-only: "<red>Este comando solo puede usarlo un jugador."
+  unknown-subcommand: "<red>Subcomando desconocido. Usa <white>/{label} help</white>."
+  unknown-model: "<red>Modelo desconocido: <white>{model}</white>."
+  specify-model: "<red>Indica un modelo."
+  invalid-number: "<red>Numero invalido: <white>{value}</white>."
+  player-not-found: "<red>Jugador no encontrado: <white>{player}</white>."
+  no-permission-others: "<red>No tienes permiso para afectar a otros jugadores."
+  reload-start: "Recargando <aqua>{what}</aqua>..."
+  reload-busy: "<red>Ya hay una recarga en curso."
+  reload-done: "<green>Recarga completa:</green> <white>{summary}</white>"
+  reload-config-done: "<green>Configuracion y mensajes recargados.</green>"
+  reload-failed: "<red>La importacion fallo; revisa la consola."
+  list-header: "Modelos <white>({count})</white> <dark_gray>-</dark_gray> pagina <aqua>{page}</aqua>/<aqua>{pages}</aqua>"
+  list-entry: " <aqua>{model}</aqua> <dark_gray>-</dark_gray> <gray>{bones} huesos, {animations} animaciones"
+  info-header: "<aqua><bold>{model}</bold></aqua>"
+  info-bones: "<gray>Huesos: <white>{bones}"
+  info-animations: "<gray>Animaciones: <white>{animations}"
+  info-hitbox: "<gray>Hitbox: <white>{hitbox}"
+  spawn-success: "Invocado <aqua>{model}</aqua> sobre <white>{entity}</white>."
+  spawn-failed: "<red>No se pudo invocar el modelo."
+  invalid-entity: "<red>Tipo de entidad invalido: <white>{entity}</white>."
+  region-denied-spawn: "<red>No puedes invocar modelos en esta zona."
+  region-denied-mount: "<red>No puedes usar monturas en esta zona."
+  summon-success: "Modelo estatico <aqua>{model}</aqua> colocado."
+  summon-failed: "<red>No se pudo colocar el modelo."
+  summon-console-coords: "<red>Indica coordenadas desde la consola."
+  apply-success: "Modelo <aqua>{model}</aqua> aplicado a <white>{entity}</white>."
+  apply-failed: "<red>No se pudo aplicar el modelo."
+  apply-no-target: "<red>Mira a una entidad (no jugador) a menos de 16 bloques o selecciona un NPC de Citizens."
+  remove-success: "Modelo eliminado."
+  remove-radius: "Eliminados <white>{count}</white> modelos en <white>{radius}</white> bloques."
+  remove-no-target: "<red>No estas mirando a una entidad con modelo."
+  kill-done: "Eliminados <white>{rigs}</white> rigs <dark_gray>(</dark_gray><gray>{orphans} partes huerfanas</gray><dark_gray>)</dark_gray> {scope}."
+  kill-scope-radius: "en <white>{radius}</white> bloques"
+  kill-scope-world: "en <white>{world}</white>"
+  kill-scope-all: "en todos los mundos"
+  disguise-success: "<white>{player}</white> ahora es <aqua>{model}</aqua>."
+  disguise-failed: "<red>No se pudo aplicar el disfraz."
+  undisguise-success: "Disfraz de <white>{player}</white> eliminado."
+  undisguise-none: "<white>{player}</white> no estaba disfrazado."
+  selfview-current: "Vista de tu disfraz: <aqua>{mode}</aqua> <dark_gray>(full, headless, none)</dark_gray>"
+  selfview-set: "Vista de tu disfraz cambiada a <aqua>{mode}</aqua>."
+  selfview-usage: "<red>Usa: full, headless o none."
+  playanim-usage: "<red>Uso: /{label} playanim <modelo> <animacion> [lerpIn] [lerpOut] [velocidad] [forzar]"
+  playanim-success: "Reproduciendo <aqua>{animation}</aqua>."
+  playanim-busy: "<red>La animacion ya se esta reproduciendo (usa forzar=true)."
+  animation-missing: "<red>El modelo no tiene la animacion <white>{animation}</white>."
+  stopanim-usage: "<red>Uso: /{label} stopanim <modelo> <animacion>"
+  stopanim-success: "Animacion detenida."
+  tint-usage: "<red>Uso: /{label} tint <modelo> <RRGGBB|reset>"
+  tint-invalid: "<red>Color invalido (usa RRGGBB)."
+  tint-success: "Tinte aplicado."
+  target-model-missing: "<red>Mira a una entidad con el modelo <white>{model}</white> (o estar disfrazado de el)."
+  mount-no-target: "<red>No estas mirando a un modelo."
+  mount-success: "Montado en <aqua>{model}</aqua>."
+  mount-driver: "Montado en <aqua>{model}</aqua> <gray>(conductor: WASD + salto)</gray>."
+  mount-no-seat: "<red>No hay asientos libres."
+  dismount-success: "Desmontado."
+  dismount-none: "<red>No estas montado en un modelo."
+  npc-usage: "<red>Uso: /{label} npc <id> <modelo|remove> <dark_gray>(id: citizens:5, fancynpcs:guia, znpcsplus:tienda o solo el id)"
+  npc-no-provider: "<red>No hay ningun plugin de NPCs compatible (Citizens, FancyNpcs, ZNPCsPlus)."
+  npc-not-found: "<red>NPC no encontrado: <white>{npc}</white>."
+  npc-assigned: "NPC <white>{npc}</white> <dark_gray>({provider})</dark_gray> ahora usa <aqua>{model}</aqua>."
+  npc-removed: "Modelo quitado del NPC <white>{npc}</white> <dark_gray>({provider})</dark_gray>."
+  npc-list-header: "NPCs con modelo <white>({count})</white>:"
+  npc-list-entry: " <white>{npc}</white> <dark_gray>({provider})</dark_gray> <gray>→</gray> <aqua>{model}</aqua>"
+  holo-usage: "<red>Uso: /{label} holo <create|remove|movehere|text|command|mode|list> ..."
+  holo-invalid-id: "<red>Id invalido <white>{id}</white> (usa a-z, 0-9, _ o -)."
+  holo-invalid-mode: "<red>Modo invalido <white>{mode}</white> (spin, billboard o static)."
+  holo-exists: "<red>Ya existe un holograma <white>{id}</white>."
+  holo-not-found: "<red>No existe el holograma <white>{id}</white>."
+  holo-created: "Holograma <aqua>{id}</aqua> creado con <white>{model}</white> <dark_gray>({mode})</dark_gray>."
+  holo-removed: "Holograma <aqua>{id}</aqua> eliminado."
+  holo-moved: "Holograma <aqua>{id}</aqua> movido a tu posicion."
+  holo-text-set: "Texto del holograma <aqua>{id}</aqua> actualizado."
+  holo-text-cleared: "Texto del holograma <aqua>{id}</aqua> eliminado."
+  holo-command-set: "Comando del holograma <aqua>{id}</aqua> actualizado."
+  holo-command-cleared: "Comando del holograma <aqua>{id}</aqua> eliminado."
+  holo-mode-set: "Holograma <aqua>{id}</aqua> ahora en modo <white>{mode}</white>."
+  holo-list-header: "Hologramas <white>({count})</white>:"
+  holo-list-entry: " <aqua>{id}</aqua> <dark_gray>-</dark_gray> <white>{model}</white> <gray>{mode} · {world} {x} {y} {z}"
+  holo-use-remove: "<red>Eso es un holograma; usa <white>/{label} holo remove <id></white>."
+  menu-undisguised: "Disfraz eliminado."
+  menu-not-disguised: "<red>No estas disfrazado."
+  menu-cleared: "Eliminados <white>{count}</white> modelos cercanos."
+  menu-spawned: "Invocado <aqua>{model}</aqua>."
+  menu-spawn-failed: "<red>No se pudo invocar <white>{model}</white>."
+  menu-disguised: "Ahora eres <aqua>{model}</aqua>."
+  menu-summoned: "Modelo estatico colocado."
+  menu-preview: "Previsualizando <aqua>{model}</aqua> <gray>({count} animaciones)"
+  menu-preview-animation: "<aqua>{model}</aqua> <dark_gray>»</dark_gray> <white>{animation}"
+  help:
+    - "<gradient:#00E5FF:#3B82F6><bold>RadiantEngine</bold></gradient> <dark_gray>v{version}</dark_gray>"
+    - "<yellow>/{label} reload [models|config|pack]</yellow> <dark_gray>-</dark_gray> <gray>recarga modelos, configuracion o el resource pack"
+    - "<yellow>/{label} list [pagina]</yellow> <dark_gray>-</dark_gray> <gray>lista los modelos cargados"
+    - "<yellow>/{label} info <modelo></yellow> <dark_gray>-</dark_gray> <gray>huesos, animaciones y hitbox"
+    - "<yellow>/{label} spawn <modelo> [entidad]</yellow> <dark_gray>-</dark_gray> <gray>invoca un mob con el modelo"
+    - "<yellow>/{label} summon <modelo> [x y z [yaw]]</yellow> <dark_gray>-</dark_gray> <gray>coloca un modelo estatico"
+    - "<yellow>/{label} apply <modelo> [ocultarBase]</yellow> <dark_gray>-</dark_gray> <gray>aplica el modelo a la entidad que miras o al NPC seleccionado"
+    - "<yellow>/{label} remove [radio]</yellow> <dark_gray>-</dark_gray> <gray>quita el modelo de la entidad que miras o en un radio"
+    - "<yellow>/{label} kill [modelo] [radio]</yellow> <dark_gray>-</dark_gray> <gray>elimina rigs (opcionalmente de un modelo)"
+    - "<yellow>/{label} killall [radio]</yellow> <dark_gray>-</dark_gray> <gray>elimina todos los rigs y partes huerfanas"
+    - "<yellow>/{label} disguise <modelo> [jugador]</yellow> <dark_gray>-</dark_gray> <gray>disfraza a un jugador"
+    - "<yellow>/{label} undisguise [jugador]</yellow> <dark_gray>-</dark_gray> <gray>quita el disfraz"
+    - "<yellow>/{label} selfview <full|headless|none></yellow> <dark_gray>-</dark_gray> <gray>como ves tu propio disfraz"
+    - "<yellow>/{label} playanim <modelo> <anim> [lerpIn] [lerpOut] [vel] [forzar]</yellow> <dark_gray>-</dark_gray> <gray>reproduce una animacion"
+    - "<yellow>/{label} stopanim <modelo> <anim></yellow> <dark_gray>-</dark_gray> <gray>detiene una animacion"
+    - "<yellow>/{label} tint <modelo> <RRGGBB|reset></yellow> <dark_gray>-</dark_gray> <gray>tiñe el modelo"
+    - "<yellow>/{label} mount [asiento]</yellow> <dark_gray>/</dark_gray> <yellow>dismount</yellow> <dark_gray>-</dark_gray> <gray>monturas"
+    - "<yellow>/{label} npc <id> <modelo|remove></yellow> <dark_gray>/</dark_gray> <yellow>npc list</yellow> <dark_gray>-</dark_gray> <gray>modelos en NPCs"
+    - "<yellow>/{label} holo create <id> <modelo> [spin|billboard|static] [escala]</yellow> <dark_gray>-</dark_gray> <gray>crea un holograma 3D"
+    - "<yellow>/{label} holo remove|movehere|list <id></yellow> <dark_gray>-</dark_gray> <gray>gestiona hologramas"
+    - "<yellow>/{label} holo text <id> [above|below] <texto...|none></yellow> <dark_gray>-</dark_gray> <gray>texto flotante (MiniMessage + PAPI)"
+    - "<yellow>/{label} holo command <id> <comando...|none></yellow> <dark_gray>-</dark_gray> <gray>comando al hacer clic ('console:' para consola)"
+    - "<yellow>/{label} holo mode <id> <spin|billboard|static></yellow> <dark_gray>-</dark_gray> <gray>modo de rotacion"
+    - "<yellow>/{label} gui</yellow> <dark_gray>-</dark_gray> <gray>menu de modelos"
