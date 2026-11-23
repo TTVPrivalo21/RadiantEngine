@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="src/main/resources/pack/pack.png" width="320" alt="RadiantAchievements logo">
+  <img src="radiantachievement.png" width="320" alt="RadiantAchievements logo">
 </p>
 
 # RadiantAchievements
