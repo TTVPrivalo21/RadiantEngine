@@ -33,6 +33,23 @@ public final class Keyframe {
         this.bezierRightValue = bezierRightValue;
     }
 
+    private String[] preRaw = {"0", "0", "0"};
+    private String[] postRaw = {"0", "0", "0"};
+
+    /** Original Blockbench strings (numbers or Molang), used by the Bedrock exporter. */
+    public void setRaw(String[] pre, String[] post) {
+        this.preRaw = pre;
+        this.postRaw = post;
+    }
+
+    public String[] preRaw() {
+        return preRaw;
+    }
+
+    public String[] postRaw() {
+        return postRaw;
+    }
+
     public double time() {
         return time;
     }

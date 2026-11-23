@@ -4,7 +4,10 @@ import dev.privalo.radiantengine.RadiantEngine;
 import dev.privalo.radiantengine.blueprint.BoneBlueprint;
 import dev.privalo.radiantengine.blueprint.RigBlueprint;
 import dev.privalo.radiantengine.config.Settings;
+import dev.privalo.radiantengine.access.AccessList;
+import dev.privalo.radiantengine.cosmetic.CosmeticManager;
 import dev.privalo.radiantengine.gui.RigMenu;
+import dev.privalo.radiantengine.pet.PetManager;
 import dev.privalo.radiantengine.hologram.HologramManager;
 import dev.privalo.radiantengine.hologram.HologramMode;
 import dev.privalo.radiantengine.hologram.HologramRig;
@@ -43,7 +46,7 @@ public final class RadiantCommand implements TabExecutor {
 
     private static final List<String> SUBCOMMANDS = List.of(
             "help", "reload", "list", "info", "spawn", "summon", "apply", "remove", "kill", "killall",
-            "disguise", "undisguise", "selfview", "playanim", "stopanim", "tint", "mount", "dismount", "npc", "holo", "gui");
+            "disguise", "undisguise", "selfview", "playanim", "stopanim", "tint", "mount", "dismount", "npc", "holo", "pet", "cosmetic", "gui");
 
     private final RadiantEngine plugin;
     private final Lang lang;
@@ -97,6 +100,8 @@ public final class RadiantCommand implements TabExecutor {
                 case "dismount" -> dismount(sender);
                 case "npc" -> npc(sender, label, args);
                 case "holo" -> holo(sender, label, args);
+                case "pet" -> pet(sender, label, args);
+                case "cosmetic" -> cosmetic(sender, label, args);
                 case "gui" -> gui(sender);
                 default -> lang.send(sender, "unknown-subcommand", "label", label);
             }
@@ -276,7 +281,7 @@ public final class RadiantCommand implements TabExecutor {
             for (RiggedEntity me : new ArrayList<>(plugin.getRigManager().all())) {
                 Entity base = me.getBase();
                 if (base instanceof Player || plugin.getNpcManager().isNpcBase(base)
-                        || plugin.getHologramManager().isHologramBase(base)
+                        || plugin.isManagedBase(base)
                         || !base.getWorld().equals(player.getWorld())
                         || base.getLocation().distanceSquared(player.getLocation()) > radius * radius) {
                     continue;
@@ -295,6 +300,10 @@ public final class RadiantCommand implements TabExecutor {
         }
         if (plugin.getHologramManager().isHologramBase(me.getBase())) {
             lang.send(sender, "holo-use-remove", "label", "radiant");
+            return;
+        }
+        if (plugin.isManagedBase(me.getBase())) {
+            lang.send(sender, "remove-managed");
             return;
         }
         if (plugin.getNpcManager().isNpcBase(me.getBase())) {
@@ -482,7 +491,7 @@ public final class RadiantCommand implements TabExecutor {
                 continue;
             }
             if (plugin.getMountManager().mount(player, rig, seat, true)) {
-                boolean driver = plugin.getMountManager().getSeat(player).isDriver();
+                boolean driver = plugin.getMountManager().isDriver(player);
                 lang.send(sender, driver ? "mount-driver" : "mount-success", "model", rig.getId());
                 return;
             }
@@ -683,6 +692,175 @@ public final class RadiantCommand implements TabExecutor {
         return String.join(" ", java.util.Arrays.copyOfRange(args, from, args.length)).trim();
     }
 
+    // ------------------------------------------------------------------ pets
+
+    private void pet(CommandSender sender, String label, String[] args) {
+        PetManager pets = plugin.getPetManager();
+        String action = args.length > 1 ? args[1].toLowerCase(Locale.ROOT) : "gui";
+        switch (action) {
+            case "gui", "menu" -> {
+                Player player = requirePlayer(sender);
+                if (player != null) {
+                    pets.openMenu(player);
+                }
+            }
+            case "summon", "spawn" -> {
+                Player player = requirePlayer(sender);
+                if (player == null) {
+                    return;
+                }
+                if (args.length < 3) {
+                    lang.send(sender, "pet-usage", "label", label);
+                    return;
+                }
+                if (!plugin.getProtection().checkSpawn(player, player.getLocation())) {
+                    return;
+                }
+                String id = args[2].toLowerCase(Locale.ROOT);
+                switch (pets.summon(player, id)) {
+                    case SUCCESS -> lang.send(sender, "pet-summoned", "pet", id);
+                    case NO_ACCESS -> lang.send(sender, "pet-no-access", "pet", id);
+                    case UNKNOWN -> lang.send(sender, "pet-unknown", "pet", id);
+                    case FAILED -> lang.send(sender, "pet-failed", "pet", id);
+                }
+            }
+            case "ride", "mount" -> {
+                Player player = requirePlayer(sender);
+                if (player == null) {
+                    return;
+                }
+                if (plugin.getMountManager().getRiddenEntity(player) != null) {
+                    plugin.getMountManager().dismount(player);
+                    lang.send(sender, "dismount-success");
+                    return;
+                }
+                pets.sendRideResult(player, pets.ride(player, args.length > 2 ? args[2].toLowerCase(Locale.ROOT) : null));
+            }
+            case "dismiss", "remove" -> {
+                Player player = requirePlayer(sender);
+                if (player != null) {
+                    lang.send(sender, pets.dismiss(player) ? "pet-dismissed" : "pet-none");
+                }
+            }
+            case "list" -> {
+                Player player = requirePlayer(sender);
+                if (player != null) {
+                    List<String> ids = pets.available(player);
+                    lang.send(sender, "pet-list", "pets", ids.isEmpty() ? "-" : String.join(", ", ids));
+                }
+            }
+            case "assign", "unassign" -> {
+                if (!sender.hasPermission("radiantengine.admin")) {
+                    lang.send(sender, "admin-only");
+                    return;
+                }
+                if (args.length < 4) {
+                    lang.send(sender, "pet-usage", "label", label);
+                    return;
+                }
+                String id = args[args.length - 1].toLowerCase(Locale.ROOT);
+                List<String> targets = AccessList.parseTargets(joinRange(args, 2, args.length - 1));
+                if (action.equals("assign")) {
+                    if (pets.definition(id) == null) {
+                        lang.send(sender, "pet-unknown", "pet", id);
+                        return;
+                    }
+                    lang.send(sender, "pet-assigned", "pet", id, "count", pets.assign(targets, id));
+                } else {
+                    lang.send(sender, "pet-unassigned", "pet", id, "count", pets.unassign(targets, id));
+                }
+            }
+            default -> lang.send(sender, "pet-usage", "label", label);
+        }
+    }
+
+    // ------------------------------------------------------------------ cosmetics
+
+    private void cosmetic(CommandSender sender, String label, String[] args) {
+        CosmeticManager cosmetics = plugin.getCosmeticManager();
+        String action = args.length > 1 ? args[1].toLowerCase(Locale.ROOT) : "gui";
+        switch (action) {
+            case "gui", "menu" -> {
+                Player player = requirePlayer(sender);
+                if (player != null) {
+                    cosmetics.openMenu(player);
+                }
+            }
+            case "equip", "wear" -> {
+                Player player = requirePlayer(sender);
+                if (player == null) {
+                    return;
+                }
+                if (args.length < 3) {
+                    lang.send(sender, "cosmetic-usage", "label", label);
+                    return;
+                }
+                String id = args[2].toLowerCase(Locale.ROOT);
+                switch (cosmetics.equip(player, id)) {
+                    case SUCCESS -> lang.send(sender, "cosmetic-equipped", "cosmetic", id);
+                    case NO_ACCESS -> lang.send(sender, "cosmetic-no-access", "cosmetic", id);
+                    case UNKNOWN -> lang.send(sender, "cosmetic-unknown", "cosmetic", id);
+                    case LIMIT -> lang.send(sender, "cosmetic-limit", "max", cosmetics.getMaxEquipped());
+                    case FAILED -> lang.send(sender, "cosmetic-failed", "cosmetic", id);
+                }
+            }
+            case "unequip", "remove" -> {
+                Player player = requirePlayer(sender);
+                if (player == null) {
+                    return;
+                }
+                if (args.length < 3 || args[2].equalsIgnoreCase("all")) {
+                    int n = cosmetics.unequipAll(player);
+                    lang.send(sender, n > 0 ? "cosmetic-unequipped-all" : "cosmetic-none", "count", n);
+                    return;
+                }
+                String id = args[2].toLowerCase(Locale.ROOT);
+                lang.send(sender, cosmetics.unequip(player, id) ? "cosmetic-unequipped" : "cosmetic-not-equipped", "cosmetic", id);
+            }
+            case "list" -> {
+                Player player = requirePlayer(sender);
+                if (player != null) {
+                    List<String> ids = cosmetics.available(player);
+                    lang.send(sender, "cosmetic-list", "cosmetics", ids.isEmpty() ? "-" : String.join(", ", ids));
+                }
+            }
+            case "assign", "unassign" -> {
+                if (!sender.hasPermission("radiantengine.admin")) {
+                    lang.send(sender, "admin-only");
+                    return;
+                }
+                if (args.length < 4) {
+                    lang.send(sender, "cosmetic-usage", "label", label);
+                    return;
+                }
+                String id = args[args.length - 1].toLowerCase(Locale.ROOT);
+                List<String> targets = AccessList.parseTargets(joinRange(args, 2, args.length - 1));
+                if (action.equals("assign")) {
+                    if (cosmetics.definition(id) == null) {
+                        lang.send(sender, "cosmetic-unknown", "cosmetic", id);
+                        return;
+                    }
+                    lang.send(sender, "cosmetic-assigned", "cosmetic", id, "count", cosmetics.assign(targets, id));
+                } else {
+                    lang.send(sender, "cosmetic-unassigned", "cosmetic", id, "count", cosmetics.unassign(targets, id));
+                }
+            }
+            default -> lang.send(sender, "cosmetic-usage", "label", label);
+        }
+    }
+
+    /** Joins args[from, to) with commas (accepts "a,b,c" as well as "a, b, c"). */
+    private static String joinRange(String[] args, int from, int to) {
+        StringBuilder sb = new StringBuilder();
+        for (int i = from; i < to; i++) {
+            if (sb.length() > 0) {
+                sb.append(',');
+            }
+            sb.append(args[i]);
+        }
+        return sb.toString();
+    }
+
     private void gui(CommandSender sender) {
         Player player = requirePlayer(sender);
         if (player != null) {
@@ -866,6 +1044,47 @@ public final class RadiantCommand implements TabExecutor {
                     options.add("remove");
                     return filter(options, args[2]);
                 }
+            }
+            case "pet", "cosmetic" -> {
+                boolean pet = sub.equals("pet");
+                if (args.length == 2) {
+                    List<String> actions = new ArrayList<>(List.of("gui", "list",
+                            pet ? "summon" : "equip", pet ? "dismiss" : "unequip"));
+                    if (pet) {
+                        actions.add("ride");
+                    }
+                    if (sender.hasPermission("radiantengine.admin")) {
+                        actions.add("assign");
+                        actions.add("unassign");
+                    }
+                    return filter(actions, args[1]);
+                }
+                String action = args[1].toLowerCase(Locale.ROOT);
+                Player self = sender instanceof Player p ? p : null;
+                if (args.length == 3 && (action.equals("summon") || action.equals("equip") || action.equals("ride")) && self != null) {
+                    return filter(pet ? plugin.getPetManager().available(self) : plugin.getCosmeticManager().available(self), args[2]);
+                }
+                if (args.length == 3 && action.equals("unequip") && self != null) {
+                    List<String> worn = new ArrayList<>(plugin.getCosmeticManager().getEquipped(self));
+                    worn.add("all");
+                    return filter(worn, args[2]);
+                }
+                if ((action.equals("assign") || action.equals("unassign")) && sender.hasPermission("radiantengine.admin")) {
+                    if (args.length == 3) {
+                        String current = args[2];
+                        int comma = current.lastIndexOf(',');
+                        String head = comma < 0 ? "" : current.substring(0, comma + 1);
+                        List<String> names = new ArrayList<>();
+                        for (String n : onlineNames()) {
+                            names.add(head + n);
+                        }
+                        return filter(names, current);
+                    }
+                    List<String> ids = new ArrayList<>(pet ? plugin.getPetManager().definedIds() : plugin.getCosmeticManager().definedIds());
+                    ids.addAll(models);
+                    return filter(new ArrayList<>(new java.util.LinkedHashSet<>(ids)), args[args.length - 1]);
+                }
+                return Collections.emptyList();
             }
             case "holo" -> {
                 if (args.length == 2) {

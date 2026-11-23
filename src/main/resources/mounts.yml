@@ -1,0 +1,57 @@
+# =====================================================================
+#   RadiantEngine - Monturas y vehiculos
+#   Perfil de conduccion por modelo (id del .bbmodel) o por perfil indicado en pets.yml (mount-profile).
+#   Los modelos sin entrada usan la seccion 'default'.
+#
+#   movement:
+#     GROUND     -> terrestre con gravedad, salto y subida automatica de escalones (step-height)
+#     FLYING     -> vuelo libre: WASD sigue la mirada, Espacio sube, Shift baja (o desmonta, ver shift-action)
+#     SWIMMING   -> nado bajo el agua con empuje y flotabilidad; fuera del agua se arrastra despacio
+#     AMPHIBIOUS -> cambia solo: agua = nado, Espacio en el aire = vuelo, suelo = terrestre
+#
+#   Asientos: el hueso 'mount' es el conductor; p_1, p_2, p_3... son pasajeros (pueden pelear e interactuar).
+#   Si el modelo no tiene huesos de asiento y base-seat es true, el conductor se sienta sobre la entidad base.
+#   Shift en vuelo/nado solo puede usarse para bajar en servidores 1.21.2+ (API de input); en versiones
+#   anteriores Shift siempre desmonta.
+# =====================================================================
+
+default:
+  movement: GROUND
+  speed: 0.28              # bloques por tick en tierra
+  sprint-multiplier: 1.35
+  jump-strength: 0.55
+  step-height: 1.0         # bloques que sube solo (0 = ninguno)
+  gravity: 0.08            # solo vehiculos sin fisica propia (modelos estaticos y mascotas)
+  max-fall-speed: 1.5
+  fly-speed: 0.45
+  vertical-speed: 0.3      # subir/bajar volando o nadando
+  swim-speed: 0.25
+  buoyancy: 0.04           # empuje hacia la superficie sin pulsar nada
+  shift-action: DESCEND    # DESCEND (Shift baja) o DISMOUNT (Shift desmonta)
+  pitch-follow: 0.5        # cuanto se inclina el modelo con la mirada al volar/nadar (0-1)
+  base-seat: true
+  banking:
+    enabled: true
+    intensity: 1.2         # grados de alabeo por grado de giro en un tick
+    max-angle: 25
+    smoothing: 0.18        # 0-1, suavizado del alabeo
+
+mounts:
+  example_dragon:
+    movement: AMPHIBIOUS
+    fly-speed: 0.6
+    vertical-speed: 0.35
+    banking:
+      intensity: 1.6
+      max-angle: 35
+  example_boat:
+    movement: SWIMMING
+    swim-speed: 0.35
+    buoyancy: 0.06
+    banking:
+      enabled: false
+  example_horse:
+    movement: GROUND
+    speed: 0.34
+    jump-strength: 0.7
+    step-height: 1.0

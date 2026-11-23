@@ -16,6 +16,9 @@ public final class MiniLegacy {
     private static final char S = '§';
     private static final Map<String, Character> COLORS = new HashMap<>();
     private static final Map<String, Character> DECORATIONS = new HashMap<>();
+    private static final java.util.Set<String> INTERACTIVE = java.util.Set.of(
+            "click", "hover", "insertion", "insert", "font", "key", "lang", "tr", "translate", "transition",
+            "rainbow", "selector", "sel", "score", "nbt", "data", "keybind", "pride", "shadow", "!shadow", "sprite", "head");
 
     static {
         COLORS.put("black", '0');
@@ -77,16 +80,30 @@ public final class MiniLegacy {
                 out.append(mini, i, n);
                 break;
             }
+            if (mini.substring(i + 1, end).indexOf('<') >= 0) {
+                out.append('<');
+                i++;
+                continue;
+            }
             String raw = mini.substring(i + 1, end);
             String lower = raw.toLowerCase(Locale.ROOT);
             i = end + 1;
             if (lower.startsWith("/")) {
                 String name = lower.substring(1);
+                boolean closed = false;
                 for (int k = stack.size() - 1; k >= 0; k--) {
                     if (stack.get(k).name().equals(name) || name.isEmpty()) {
                         stack.remove(k);
+                        closed = true;
                         break;
                     }
+                }
+                if (!closed && INTERACTIVE.contains(name.split(":", 2)[0])) {
+                    continue;
+                }
+                if (!closed) {
+                    out.append('<').append(raw).append('>');
+                    continue;
                 }
                 emitState(out, stack);
                 continue;
@@ -127,8 +144,10 @@ public final class MiniLegacy {
             if (deco != null) {
                 stack.add(new Tag(lower, null, deco));
                 out.append(S).append(deco);
+            } else if (!INTERACTIVE.contains(lower.split(":", 2)[0])) {
+                // not a MiniMessage tag (e.g. "<modelo>" in usage messages): keep it as text
+                out.append('<').append(raw).append('>');
             }
-            // unknown / interactive tags are dropped
         }
         return out.toString();
     }

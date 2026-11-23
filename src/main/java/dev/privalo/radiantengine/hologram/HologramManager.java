@@ -446,9 +446,9 @@ public final class HologramManager {
             double x = base.getX() + Math.cos(a) * radius;
             double z = base.getZ() + Math.sin(a) * radius;
             if (data == null) {
-                world.spawnParticle(particle, x, base.getY() + 0.05, z, 1, 0, 0, 0, 0);
+                plugin.getBedrock().spawnParticle(world, particle, new Location(world, x, base.getY() + 0.05, z), 1, 0, 0, 0, 0, null);
             } else {
-                world.spawnParticle(particle, x, base.getY() + 0.05, z, 1, 0, 0, 0, 0, data);
+                plugin.getBedrock().spawnParticle(world, particle, new Location(world, x, base.getY() + 0.05, z), 1, 0, 0, 0, 0, data);
             }
         }
     }

@@ -73,6 +73,8 @@ public final class ActiveRig implements AnimationHandler.EffectSink {
     private boolean dying;
     private boolean spawned;
     private boolean useBaseName = true;
+    private float rootTilt;
+    private float rootRoll;
     private org.bukkit.entity.Display.Billboard billboard = org.bukkit.entity.Display.Billboard.FIXED;
     private org.bukkit.entity.Display.Brightness brightness;
     private boolean glowing;
@@ -201,6 +203,12 @@ public final class ActiveRig implements AnimationHandler.EffectSink {
             headYaw = bodyYaw;
         }
         dev.privalo.radiantengine.util.MathUtil.yaw(bodyYaw, rootRotation);
+        if (Math.abs(rootTilt) > 1.0E-3f) {
+            rootRotation.rotateX(dev.privalo.radiantengine.util.MathUtil.rad(rootTilt));
+        }
+        if (Math.abs(rootRoll) > 1.0E-3f) {
+            rootRotation.rotateZ(dev.privalo.radiantengine.util.MathUtil.rad(rootRoll));
+        }
         rootScale.set(scale, scale, scale);
         float maxYaw = plugin.getSettings().headMaxYaw;
         float relYaw = dev.privalo.radiantengine.util.MathUtil.clamp(
@@ -257,7 +265,7 @@ public final class ActiveRig implements AnimationHandler.EffectSink {
                             at = bone.absoluteLocation(origin);
                         }
                     }
-                    origin.getWorld().spawnParticle(particle, at, 4, 0.05, 0.05, 0.05, 0.0);
+                    plugin.getBedrock().spawnParticle(origin.getWorld(), particle, at, 4, 0.05, 0.05, 0.05, 0.0, null);
                 }
                 case SCRIPT -> plugin.getScriptRunner().run(this, entry.locator(), entry.effect());
             }
@@ -588,6 +596,24 @@ public final class ActiveRig implements AnimationHandler.EffectSink {
             }
         }
         return list;
+    }
+
+    /** Extra pitch (degrees) applied to the whole rig after the body yaw (used by cosmetics while gliding). */
+    public void setRootTilt(float degrees) {
+        this.rootTilt = degrees;
+    }
+
+    /** Roll (degrees) around the forward axis applied after yaw and tilt; positive lifts the left side (banking right). */
+    public void setRootRoll(float degrees) {
+        this.rootRoll = degrees;
+    }
+
+    public float getRootRoll() {
+        return rootRoll;
+    }
+
+    public float getRootTilt() {
+        return rootTilt;
     }
 
     public float getScale() {

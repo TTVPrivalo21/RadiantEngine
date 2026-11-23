@@ -1,0 +1,40 @@
+# =====================================================================
+#   RadiantEngine - Cosmeticos 3D
+#   /radiant cosmetic gui | equip <cosmetico> | unequip [cosmetico]
+#   Acceso: permiso radiantengine.cosmetic.<id> (o radiantengine.cosmetic.*) o asignacion directa abajo.
+# =====================================================================
+
+# Definiciones (opcional). Si 'cosmetics.only-defined' es false en config.yml, cualquier modelo
+# cargado puede equiparse con el anclaje 'cosmetics.default-anchor'.
+#
+# anchor:
+#   back  -> el origen del modelo va a los pies del jugador y gira con el cuerpo (alas, mochilas, espadas)
+#   head  -> el origen va a la altura de los ojos y gira con la cabeza (sombreros, aureolas)
+#   orbit -> el modelo orbita alrededor del jugador (radius, speed en grados/s, height)
+# offset: [derecha, arriba, adelante] en bloques, relativo al cuerpo del jugador
+# self-view: AUTO (oculta los de cabeza para no tapar la camara), VISIBLE o HIDDEN
+cosmetics:
+  example_wings:
+    model: example_wings
+    anchor: back
+    offset: [0.0, 0.0, -0.05]
+    scale: 1.0
+  example_crown:
+    model: example_crown
+    anchor: head
+    offset: [0.0, 0.3, 0.0]
+    follow-pitch: false
+  example_orb:
+    model: example_orb
+    anchor: orbit
+    radius: 1.1
+    speed: 120
+    height: 1.3
+    scale: 0.6
+
+# Cosmeticos asignados directamente a jugadores (UUID o nombre; lista o separados por comas).
+#   example_wings: "Steve, Alex"
+assignments: {}
+
+# Cosmeticos equipados por jugador (UUID -> lista). Lo gestiona el plugin.
+equipped: {}

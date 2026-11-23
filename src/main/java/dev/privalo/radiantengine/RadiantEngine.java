@@ -2,6 +2,9 @@ package dev.privalo.radiantengine;
 
 import dev.privalo.radiantengine.animation.runtime.ScriptRunner;
 import dev.privalo.radiantengine.api.RadiantAPI;
+import dev.privalo.radiantengine.bedrock.BedrockSupport;
+import dev.privalo.radiantengine.cosmetic.CosmeticManager;
+import dev.privalo.radiantengine.pet.PetManager;
 import dev.privalo.radiantengine.api.event.BlueprintLoadEvent;
 import dev.privalo.radiantengine.command.RadiantCommand;
 import dev.privalo.radiantengine.config.Settings;
@@ -58,7 +61,11 @@ public final class RadiantEngine extends JavaPlugin {
     private NpcManager npcManager;
     private Protection protection;
     private HologramManager hologramManager;
+    private BedrockSupport bedrock;
+    private PetManager petManager;
+    private CosmeticManager cosmeticManager;
     private volatile boolean reloading;
+    private volatile boolean guiTextureReady;
 
     @Override
     public void onLoad() {
@@ -80,10 +87,15 @@ public final class RadiantEngine extends JavaPlugin {
         this.scriptRunner = new ScriptRunner(this);
         this.rigManager = new RigManager(this);
         this.mountManager = new MountManager(this);
+        mountManager.reload();
         this.disguiseManager = new DisguiseManager(this);
         this.protection = new Protection(this);
         this.npcManager = new NpcManager(this);
         this.hologramManager = new HologramManager(this);
+        this.bedrock = new BedrockSupport(this);
+        bedrock.reload(getConfig());
+        this.petManager = new PetManager(this);
+        this.cosmeticManager = new CosmeticManager(this);
         RadiantAPI.init(this);
 
         Bukkit.getPluginManager().registerEvents(new EntityListener(this), this);
@@ -97,8 +109,12 @@ public final class RadiantEngine extends JavaPlugin {
         }
 
         protection.detect();
+        bedrock.detect();
+        Bukkit.getPluginManager().registerEvents(bedrock, this);
         npcManager.enable();
         hologramManager.enable();
+        petManager.enable();
+        cosmeticManager.enable();
         if (Bukkit.getPluginManager().isPluginEnabled("MythicMobs")) {
             try {
                 new MythicHook(this).register();
@@ -126,6 +142,12 @@ public final class RadiantEngine extends JavaPlugin {
 
     @Override
     public void onDisable() {
+        if (cosmeticManager != null) {
+            cosmeticManager.shutdown();
+        }
+        if (petManager != null) {
+            petManager.shutdown();
+        }
         if (hologramManager != null) {
             hologramManager.shutdown();
         }
@@ -153,6 +175,11 @@ public final class RadiantEngine extends JavaPlugin {
         itemResolver.clearCache();
         protection.detect();
         npcManager.restartTask();
+        bedrock.reload(getConfig());
+        bedrock.detect();
+        mountManager.reload();
+        petManager.reload();
+        cosmeticManager.reload();
         rigManager.refreshItemsAll();
     }
 
@@ -209,6 +236,8 @@ public final class RadiantEngine extends JavaPlugin {
             }
             boolean firstLoad = registry.all().isEmpty();
             registry.replace(output.blueprints());
+            itemResolver.setBranding(output.brandingCustomModelData(), output.brandingModel());
+            guiTextureReady = output.guiTexture();
             itemResolver.clearCache();
             if (mode == ReloadMode.MODELS || firstLoad) {
                 rigManager.refreshAll();
@@ -218,6 +247,8 @@ public final class RadiantEngine extends JavaPlugin {
             npcManager.applyAll();
             if (mode == ReloadMode.MODELS || firstLoad) {
                 hologramManager.respawnAll();
+                petManager.respawnAll();
+                cosmeticManager.respawnAll();
             }
             Bukkit.getPluginManager().callEvent(new BlueprintLoadEvent(BlueprintLoadEvent.Phase.POST, output.blueprints()));
             if (output.oraxenChanged() && settings.oraxenReloadCommand != null && !settings.oraxenReloadCommand.isBlank()) {
@@ -226,6 +257,7 @@ public final class RadiantEngine extends JavaPlugin {
                 itemResolver.clearCache();
                 rigManager.refreshItemsAll();
             }
+            reportPack(sender, mode, output);
             String summary = output.blueprints().size() + " modelos, " + output.bones() + " huesos renderizables ("
                     + (System.currentTimeMillis() - start) + " ms)"
                     + (output.oraxenExported() ? ", exportado a Oraxen" : ", pack: resource_pack.zip");
@@ -236,6 +268,38 @@ public final class RadiantEngine extends JavaPlugin {
         } finally {
             reloading = false;
         }
+    }
+
+    /**
+     * Prints the SHA-1 of resource_pack.zip and the exported GUI / icon files, so it is easy to check that players have
+     * the current pack (compare with resource-pack-sha1 in server.properties).
+     */
+    private void reportPack(CommandSender sender, ReloadMode mode, ResourcePackGenerator.Output output) {
+        String sha1 = output.zipSha1() == null ? "-" : output.zipSha1();
+        String size = output.zipSize() <= 0 ? "-" : String.format(java.util.Locale.ROOT, "%.1f KB", output.zipSize() / 1024.0);
+        getLogger().info("resource_pack.zip SHA-1: " + sha1 + " (" + size + ")");
+        getLogger().info("Archivos de GUI / iconos exportados:");
+        for (String line : output.guiReport()) {
+            getLogger().info("  - " + line);
+        }
+        if (!output.guiTexture()) {
+            getLogger().warning("El fondo del menu no es valido; los menus usaran el titulo sin textura.");
+        }
+        if (sender != null && !(sender instanceof org.bukkit.command.ConsoleCommandSender)) {
+            lang.send(sender, "reload-pack-sha1", "sha1", sha1, "size", size);
+            if (mode == ReloadMode.PACK) {
+                for (String line : output.guiReport()) {
+                    Lang.sendRaw(sender, lang.format("reload-pack-file", "file", line));
+                }
+            } else if (!output.guiReport().isEmpty()) {
+                Lang.sendRaw(sender, lang.format("reload-pack-file", "file", output.guiReport().get(Math.min(1, output.guiReport().size() - 1))));
+            }
+        }
+    }
+
+    /** True when the last generated pack contains a valid custom menu background. */
+    public boolean isGuiTextureReady() {
+        return guiTextureReady;
     }
 
     public Settings getSettings() {
@@ -280,6 +344,23 @@ public final class RadiantEngine extends JavaPlugin {
 
     public NpcManager getNpcManager() {
         return npcManager;
+    }
+
+    public BedrockSupport getBedrock() {
+        return bedrock;
+    }
+
+    public PetManager getPetManager() {
+        return petManager;
+    }
+
+    public CosmeticManager getCosmeticManager() {
+        return cosmeticManager;
+    }
+
+    /** True for rig bases owned by holograms, pets or cosmetics (not affected by kill/remove). */
+    public boolean isManagedBase(org.bukkit.entity.Entity entity) {
+        return hologramManager.isHologramBase(entity) || petManager.isPetBase(entity) || cosmeticManager.isCosmeticBase(entity);
     }
 
     public HologramManager getHologramManager() {

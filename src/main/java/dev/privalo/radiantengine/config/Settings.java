@@ -38,6 +38,7 @@ public final class Settings {
     public final boolean oraxenEnabled;
     public final String oraxenItemsFile;
     public final boolean useOraxenItems;
+    public final boolean useItemModel;
     public final String oraxenReloadCommand;
 
     public final boolean damageTint;
@@ -92,6 +93,17 @@ public final class Settings {
     public final String guiTitle;
     public final String guiTexturedTitle;
     public final boolean npcHideOriginal;
+    public final boolean bedrockGeneratePack;
+    public final boolean brandingEnabled;
+    public final java.util.List<String> brandingFiles;
+    public final boolean brandingPackIcon;
+    public final int brandingPackIconSize;
+    public final boolean brandingMenuHeader;
+    public final int brandingMenuLogoHeight;
+    public final boolean brandingGuiItem;
+    public final int brandingItemSize;
+    public final boolean brandingOraxenPackIcon;
+    public final boolean brandingUseDefault;
     public final double holoSpinSpeed;
     public final double holoBobAmplitude;
     public final double holoBobPeriod;
@@ -133,7 +145,8 @@ public final class Settings {
 
         this.oraxenEnabled = c.getBoolean("oraxen.enabled", true);
         this.oraxenItemsFile = c.getString("oraxen.items-file", "radiantengine_models.yml");
-        this.useOraxenItems = c.getBoolean("oraxen.use-oraxen-items", true);
+        this.useOraxenItems = c.getBoolean("oraxen.use-oraxen-items", false);
+        this.useItemModel = c.getBoolean("generator.use-item-model", true);
         this.oraxenReloadCommand = c.getString("oraxen.reload-command", "oraxen reload all");
 
         this.damageTint = c.getBoolean("model.damage-tint", true);
@@ -191,6 +204,19 @@ public final class Settings {
         this.guiTitle = c.getString("gui.title", "<dark_gray>Modelos</dark_gray> <gray>({page}/{pages})</gray>");
         this.guiTexturedTitle = c.getString("gui.textured-title", "<white>Modelos</white> <dark_gray>»</dark_gray> <aqua>{page}</aqua><gray>/</gray><aqua>{pages}</aqua>");
         this.npcHideOriginal = c.getBoolean("npc.hide-original", true);
+        this.bedrockGeneratePack = c.getBoolean("bedrock.generate-pack", true);
+        this.brandingEnabled = c.getBoolean("branding.enabled", true);
+        java.util.List<String> logoFiles = c.getStringList("branding.logo-files");
+        this.brandingFiles = java.util.List.copyOf(logoFiles.isEmpty()
+                ? java.util.List.of("logo.png", "assets/logo.png", "branding/logo.png") : logoFiles);
+        this.brandingPackIcon = c.getBoolean("branding.pack-icon", true);
+        this.brandingPackIconSize = powerOfTwo(c.getInt("branding.pack-icon-size", 256), 16, 512);
+        this.brandingMenuHeader = c.getBoolean("branding.menu-header", true);
+        this.brandingMenuLogoHeight = clamp(c.getInt("branding.menu-logo-height", 12), 4, 13);
+        this.brandingGuiItem = c.getBoolean("branding.gui-item", true);
+        this.brandingItemSize = powerOfTwo(c.getInt("branding.item-size", 64), 16, 256);
+        this.brandingOraxenPackIcon = c.getBoolean("branding.oraxen-pack-icon", false);
+        this.brandingUseDefault = c.getBoolean("branding.use-default-logo", true);
         this.holoSpinSpeed = c.getDouble("holograms.defaults.spin-speed", 30.0);
         this.holoBobAmplitude = Math.max(0, c.getDouble("holograms.defaults.bob-amplitude", 0.08));
         this.holoBobPeriod = Math.max(0.2, c.getDouble("holograms.defaults.bob-period", 3.0));
@@ -248,6 +274,12 @@ public final class Settings {
             // registries not bootstrapped (offline tooling): trust the configured material
             return !material.name().endsWith("_WALL_SIGN");
         }
+    }
+
+    /** Clamps and rounds down to a power of two (Minecraft textures). */
+    private static int powerOfTwo(int v, int min, int max) {
+        int c = clamp(v, min, max);
+        return Integer.highestOneBit(c);
     }
 
     private static int clamp(int v, int min, int max) {

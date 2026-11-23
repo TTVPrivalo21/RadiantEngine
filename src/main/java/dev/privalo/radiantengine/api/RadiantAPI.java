@@ -4,10 +4,14 @@ import dev.privalo.radiantengine.RadiantEngine;
 import dev.privalo.radiantengine.animation.runtime.RigState;
 import dev.privalo.radiantengine.blueprint.RigBlueprint;
 import dev.privalo.radiantengine.config.Settings;
+import dev.privalo.radiantengine.cosmetic.CosmeticManager;
+import dev.privalo.radiantengine.pet.ActivePet;
+import dev.privalo.radiantengine.pet.PetManager;
 import dev.privalo.radiantengine.hologram.HologramMode;
 import dev.privalo.radiantengine.hologram.HologramRig;
 import dev.privalo.radiantengine.model.ActiveRig;
 import dev.privalo.radiantengine.model.RiggedEntity;
+import dev.privalo.radiantengine.mount.MountProfile;
 import org.bukkit.Color;
 import org.bukkit.Location;
 import org.bukkit.entity.Entity;
@@ -518,5 +522,165 @@ public final class RadiantAPI {
      */
     public static void updateHologram(HologramRig hologram) {
         getPlugin().getHologramManager().update(hologram);
+    }
+
+    // ------------------------------------------------------------------ pets
+
+    /**
+     * Summons a pet for a player (permission or pets.yml assignment required).
+     *
+     * @param player owner
+     * @param petId  pet id (pets.yml definition or model id)
+     * @return the result of the operation
+     */
+    public static PetManager.Result summonPet(Player player, String petId) {
+        return getPlugin().getPetManager().summon(player, petId);
+    }
+
+    /**
+     * Dismisses the player's pet.
+     *
+     * @param player owner
+     * @return true if the player had a pet
+     */
+    public static boolean dismissPet(Player player) {
+        return getPlugin().getPetManager().dismiss(player);
+    }
+
+    /**
+     * Mounts the owner on their summoned pet (the pet must be {@code rideable: true}). While ridden the pet moves with
+     * its mount profile (mounts.yml) and returns to following its owner when they get off.
+     *
+     * @return the result of the operation
+     */
+    public static PetManager.RideResult ridePet(Player player) {
+        return getPlugin().getPetManager().ride(player);
+    }
+
+    /**
+     * Summons the pet if needed and mounts the owner on it.
+     *
+     * @param petId pet id, or null for the currently equipped pet
+     */
+    public static PetManager.RideResult ridePet(Player player, String petId) {
+        return getPlugin().getPetManager().ride(player, petId);
+    }
+
+    /**
+     * Driving profile of a model or profile id from mounts.yml (movement type, speeds, banking...).
+     *
+     * @param id model id or profile id
+     * @return the profile, or the default profile when none is defined
+     */
+    public static MountProfile getMountProfile(String id) {
+        return getPlugin().getMountManager().profile(id);
+    }
+
+    /**
+     * Movement mode currently applied to a driven vehicle (GROUND, FLYING or SWIMMING), or null if nobody drives it.
+     *
+     * @param base base entity of the vehicle
+     */
+    public static MountProfile.Mode getMountMode(Entity base) {
+        RiggedEntity rigged = getRiggedEntity(base);
+        return rigged == null ? null : getPlugin().getMountManager().getMode(rigged);
+    }
+
+    /** @return the summoned pet of the player, or null */
+    public static ActivePet getPet(Player player) {
+        return getPlugin().getPetManager().getPet(player);
+    }
+
+    /** @return true if the player may use the pet (permission or direct assignment) */
+    public static boolean hasPetAccess(Player player, String petId) {
+        return getPlugin().getPetManager().hasAccess(player, petId);
+    }
+
+    /** @return pet ids the player can summon */
+    public static List<String> getAvailablePets(Player player) {
+        return getPlugin().getPetManager().available(player);
+    }
+
+    /**
+     * Grants a pet to several players at once (UUIDs or names) and saves pets.yml.
+     *
+     * @return number of new grants
+     */
+    public static int assignPet(Collection<String> players, String petId) {
+        return getPlugin().getPetManager().assign(players, petId);
+    }
+
+    /**
+     * Revokes a pet from several players (UUIDs or names) and saves pets.yml.
+     *
+     * @return number of removed grants
+     */
+    public static int unassignPet(Collection<String> players, String petId) {
+        return getPlugin().getPetManager().unassign(players, petId);
+    }
+
+    // ------------------------------------------------------------------ cosmetics
+
+    /**
+     * Equips a cosmetic (permission or cosmetics.yml assignment required). A cosmetic on the same anchor (back or
+     * head) is replaced.
+     *
+     * @return the result of the operation
+     */
+    public static CosmeticManager.Result equipCosmetic(Player player, String cosmeticId) {
+        return getPlugin().getCosmeticManager().equip(player, cosmeticId);
+    }
+
+    /** @return true if the cosmetic was equipped */
+    public static boolean unequipCosmetic(Player player, String cosmeticId) {
+        return getPlugin().getCosmeticManager().unequip(player, cosmeticId);
+    }
+
+    /** @return number of removed cosmetics */
+    public static int unequipAllCosmetics(Player player) {
+        return getPlugin().getCosmeticManager().unequipAll(player);
+    }
+
+    /** @return ids of the cosmetics the player wears */
+    public static List<String> getEquippedCosmetics(Player player) {
+        return getPlugin().getCosmeticManager().getEquipped(player);
+    }
+
+    /** @return true if the player may wear the cosmetic (permission or direct assignment) */
+    public static boolean hasCosmeticAccess(Player player, String cosmeticId) {
+        return getPlugin().getCosmeticManager().hasAccess(player, cosmeticId);
+    }
+
+    /** @return cosmetic ids the player can equip */
+    public static List<String> getAvailableCosmetics(Player player) {
+        return getPlugin().getCosmeticManager().available(player);
+    }
+
+    /**
+     * Grants a cosmetic to several players at once (UUIDs or names) and saves cosmetics.yml.
+     *
+     * @return number of new grants
+     */
+    public static int assignCosmetic(Collection<String> players, String cosmeticId) {
+        return getPlugin().getCosmeticManager().assign(players, cosmeticId);
+    }
+
+    /**
+     * Revokes a cosmetic from several players (UUIDs or names) and saves cosmetics.yml.
+     *
+     * @return number of removed grants
+     */
+    public static int unassignCosmetic(Collection<String> players, String cosmeticId) {
+        return getPlugin().getCosmeticManager().unassign(players, cosmeticId);
+    }
+
+    // ------------------------------------------------------------------ bedrock
+
+    /**
+     * @return true if the player is connected from Bedrock Edition (Floodgate / Geyser); false when neither is
+     * installed or bedrock support is disabled
+     */
+    public static boolean isBedrockPlayer(Player player) {
+        return getPlugin().getBedrock().isBedrock(player);
     }
 }

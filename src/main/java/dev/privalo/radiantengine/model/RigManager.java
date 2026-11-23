@@ -37,6 +37,12 @@ public final class RigManager {
     private final Map<UUID, RiggedEntity> entities = new HashMap<>();
     private final Map<UUID, RiggedEntity> partOwners = new HashMap<>();
     private BukkitTask task;
+    private final List<Runnable> preTickHooks = new ArrayList<>();
+
+    /** Runs every tick right before rigs are updated (pets and cosmetics position their anchors here). */
+    public void addPreTickHook(Runnable hook) {
+        preTickHooks.add(hook);
+    }
 
     public RigManager(RadiantEngine plugin) {
         this.plugin = plugin;
@@ -49,6 +55,16 @@ public final class RigManager {
     }
 
     private void tick() {
+        for (Runnable hook : preTickHooks) {
+            try {
+                hook.run();
+            } catch (Throwable t) {
+                plugin.getLogger().warning("Error en una tarea previa al tick de rigs: " + t);
+                if (plugin.getSettings().debug) {
+                    t.printStackTrace();
+                }
+            }
+        }
         if (entities.isEmpty()) {
             return;
         }
@@ -269,6 +285,28 @@ public final class RigManager {
         return addModel(anchor, bp.getId(), persistent);
     }
 
+    /**
+     * Spawns a rig on an invisible, non-persistent ItemDisplay anchor without hitbox (used by cosmetics so they
+     * never intercept clicks aimed at the player).
+     */
+    public ActiveRig summonDisplayAnchor(Location location, String modelId) {
+        RigBlueprint bp = plugin.getRegistry().get(modelId);
+        if (bp == null || location.getWorld() == null) {
+            return null;
+        }
+        Keys keys = plugin.getKeys();
+        org.bukkit.entity.ItemDisplay anchor = location.getWorld().spawn(location, org.bukkit.entity.ItemDisplay.class, e -> {
+            e.setPersistent(false);
+            e.setItemStack(null);
+            e.setInvulnerable(true);
+            e.setTeleportDuration(plugin.getSettings().teleportTicks);
+            keys.setFlag(e, keys.owned, true);
+        });
+        RiggedEntity me = getOrCreate(anchor);
+        me.setHitboxEnabled(false);
+        return addModel(anchor, bp.getId(), false);
+    }
+
     // ------------------------------------------------------------------ persistence
 
     public Set<String> storedModels(Entity base) {
@@ -460,7 +498,7 @@ public final class RigManager {
             if (modelId != null && me.getModel(modelId) == null) {
                 continue;
             }
-            if (plugin.getHologramManager().isHologramBase(base)) {
+            if (plugin.isManagedBase(base)) {
                 continue;
             }
             rigs++;

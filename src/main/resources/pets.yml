@@ -1,0 +1,29 @@
+# =====================================================================
+#   RadiantEngine - Mascotas 3D
+#   /radiant pet gui | summon <mascota> | dismiss
+#   Acceso: permiso radiantengine.pet.<id> (o radiantengine.pet.*) o asignacion directa abajo.
+# =====================================================================
+
+# Definiciones de mascotas (opcional). Si 'pets.only-defined' es false en config.yml,
+# cualquier modelo cargado puede usarse como mascota con los valores por defecto.
+pets:
+  example_dragon:
+    model: example_dragon      # id del .bbmodel
+    movement: FLY              # WALK (sigue el suelo) o FLY (flota junto al dueño)
+    scale: 0.5
+    speed: 0.25                # bloques por tick caminando
+    sprint-speed: 0.42         # bloques por tick si el dueño corre
+    follow-distance: 2.0       # distancia detras del dueño
+    fly-height: 1.6            # altura sobre los pies del dueño (FLY)
+    name: "<aqua>Dragon de {player}"   # se muestra en huesos tag_ (MiniMessage)
+    rideable: true             # el dueño puede montarla (GUI: click derecho, /radiant pet ride o click sobre ella)
+    mount-profile: example_dragon   # perfil de mounts.yml (por defecto, el id del modelo)
+
+# Mascotas asignadas directamente a jugadores (UUID o nombre).
+# Acepta listas o texto separado por comas:
+#   example_dragon: [Steve, 069a79f4-44e9-4726-a5be-fca90e38aaf5]
+#   example_cat: "Alex, Notch, Herobrine"
+assignments: {}
+
+# Mascota equipada por jugador (UUID -> mascota). Lo gestiona el plugin.
+equipped: {}

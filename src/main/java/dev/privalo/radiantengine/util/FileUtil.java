@@ -112,6 +112,24 @@ public final class FileUtil {
         }
     }
 
+    /** SHA-1 of one file's content (the value used by server.properties resource-pack-sha1), or null. */
+    public static String sha1(File file) {
+        if (file == null || !file.isFile()) {
+            return null;
+        }
+        try (InputStream in = Files.newInputStream(file.toPath())) {
+            MessageDigest digest = MessageDigest.getInstance("SHA-1");
+            byte[] buffer = new byte[64 * 1024];
+            int read;
+            while ((read = in.read(buffer)) > 0) {
+                digest.update(buffer, 0, read);
+            }
+            return HexFormat.of().formatHex(digest.digest());
+        } catch (IOException | NoSuchAlgorithmException e) {
+            return null;
+        }
+    }
+
     /** SHA-1 over every file (relative path + content) below the given roots; used to detect changes. */
     public static String hash(File... roots) {
         try {

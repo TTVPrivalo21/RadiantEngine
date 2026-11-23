@@ -19,6 +19,9 @@ generator:
   pack-description: "RadiantEngine resource pack"
   # Rango maximo (en pixeles desde el pivote) antes de reducir el modelo JSON y compensar con escala.
   max-element-extent: 24.0
+  # 1.21.4+: asigna a cada item el componente item_model con su propia definicion (assets/<namespace>/items/...).
+  # Evita el cuadro rosa/negro cuando otro plugin (p. ej. Oraxen) cambia el item base. Los clientes antiguos usan el CMD.
+  use-item-model: true
 
 render:
   # Ticks de interpolacion nativa de la Transformation de cada hueso (1-3 recomendado)
@@ -34,8 +37,9 @@ oraxen:
   # Si Oraxen esta instalado, exporta los huesos como items de Oraxen y copia los assets a su pack.
   enabled: true
   items-file: radiantengine_models.yml
-  # Usar OraxenItems.getItemById(...) para construir los items de los huesos (respeta el CMD asignado por Oraxen)
-  use-oraxen-items: true
+  # Construir los items de los huesos con OraxenItems.getItemById(...). Normalmente no hace falta: RadiantEngine
+  # genera sus propios items. Aunque se active, el CustomModelData y el item_model siempre apuntan a los de RadiantEngine.
+  use-oraxen-items: false
   # Comando ejecutado cuando cambian los assets exportados (vacio = no ejecutar nada)
   reload-command: "oraxen reload all"
 
@@ -83,6 +87,8 @@ disguise:
   persist: true
 
 mount:
+  # Valores base de conduccion. Los perfiles por modelo (GROUND, FLYING, SWIMMING, AMPHIBIOUS, banking...)
+  # estan en plugins/RadiantEngine/mounts.yml.
   speed: 0.28
   jump-strength: 0.55
   # Desplazamiento vertical del asiento respecto al hueso p_/mount
@@ -128,6 +134,96 @@ holograms:
   # Tiempo minimo entre clics de un jugador
   click-cooldown-ms: 500
 
+pets:
+  # true = solo las mascotas definidas en pets.yml; false = cualquier modelo (con permiso o asignacion)
+  only-defined: false
+  default-movement: WALK
+  speed: 0.24
+  sprint-speed: 0.42
+  follow-distance: 2.2
+  fly-height: 1.5
+  # Distancia a la que la mascota deja de acercarse
+  stop-distance: 1.2
+  # Si se aleja mas, se teletransporta junto al dueño
+  teleport-distance: 24
+  hide-while-disguised: false
+  # Mascotas como vehiculo (pets.yml: rideable: true y mount-profile opcional)
+  ride:
+    # Valor de 'rideable' para mascotas sin definicion en pets.yml
+    default-rideable: false
+    # El dueño monta su mascota haciendo click derecho sobre ella
+    interact: true
+    # Otros jugadores pueden subir como pasajeros (huesos p_) mientras el dueño la conduce
+    allow-passengers: true
+  # Animaciones de Blockbench usadas segun el estado del dueño
+  animations:
+    idle: idle
+    walk: walk
+    sprint: sprint
+    jump: jump
+    fly: fly
+    owner-attack: owner_attack
+    owner-hurt: owner_hurt
+
+cosmetics:
+  only-defined: false
+  # Anclaje para modelos no definidos en cosmetics.yml: BACK, HEAD u ORBIT
+  default-anchor: BACK
+  # Maximo de cosmeticos equipados a la vez (uno por anclaje salvo ORBIT)
+  max-equipped: 4
+  hide-while-disguised: true
+  hide-when-invisible: true
+  animations:
+    idle: idle
+    walk: walk
+    sprint: sprint
+    jump: jump
+    fly: fly
+
+bedrock:
+  # Soporte Geyser/Floodgate (deteccion por reflexion, no requiere dependencias)
+  enabled: true
+  # Genera plugins/RadiantEngine/bedrock_pack/ y bedrock_pack.mcpack en cada reload
+  generate-pack: true
+  # Oculta a los jugadores Bedrock los rigs con mas huesos renderizables que max-render-bones
+  hide-heavy-rigs: false
+  max-render-bones: 24
+  # Reduce (a 1/4) las particulas de animaciones y hologramas para jugadores Bedrock
+  reduce-particles: true
+  particle-distance: 48
+  # Ajustes para las mascotas/cosmeticos de jugadores Bedrock
+  pet-scale: 1.0
+  cosmetic-scale: 1.0
+  cosmetic-offset-y: 0.0
+  # Vista del propio disfraz para jugadores Bedrock (FULL, HEADLESS o NONE)
+  disguise-self-view: NONE
+  # Sin Floodgate/Geyser: considerar Bedrock los UUID que empiezan por 00000000-0000-0000
+  detect-by-uuid-prefix: false
+
+branding:
+  # Logo usado en el resource pack, el menu y el pack Bedrock.
+  # Si existe uno de los archivos de logo-files se usa ese; si no, el logo de RadiantEngine incluido en el plugin.
+  enabled: true
+  # Usar el logo de RadiantEngine incluido en el plugin cuando no hay logo personalizado
+  # (false = icono generado simple)
+  use-default-logo: true
+  # Archivos buscados en orden, relativos a plugins/RadiantEngine/ (PNG, JPG, GIF o BMP; max 16 MB / 8192 px)
+  logo-files:
+    - logo.png
+    - assets/logo.png
+    - branding/logo.png
+  # Icono del pack (pack.png de Java y pack_icon.png de Bedrock). Tamaño en px (potencia de 2, 16-512)
+  pack-icon: true
+  pack-icon-size: 256
+  # Dibuja el logo en la cabecera del fondo de los menus (altura en px, 4-13)
+  menu-header: true
+  menu-logo-height: 12
+  # Item con el logo para los botones de informacion de los menus (textura en px, potencia de 2, 16-256)
+  gui-item: true
+  item-size: 64
+  # Sustituir tambien plugins/Oraxen/pack/pack.png por tu logo (cambia el icono del pack de Oraxen)
+  oraxen-pack-icon: false
+
 worldguard:
   # Mensajes cuando un flag bloquea una accion. Flags: radiant-allow-spawn, radiant-allow-mounts
   enabled: true
@@ -166,6 +262,8 @@ messages:
   reload-start: "Recargando <aqua>{what}</aqua>..."
   reload-busy: "<red>Ya hay una recarga en curso."
   reload-done: "<green>Recarga completa:</green> <white>{summary}</white>"
+  reload-pack-sha1: "<gray>resource_pack.zip SHA-1: <white>{sha1}</white> <dark_gray>({size})"
+  reload-pack-file: " <dark_gray>-</dark_gray> <gray>{file}"
   reload-config-done: "<green>Configuracion y mensajes recargados.</green>"
   reload-failed: "<red>La importacion fallo; revisa la consola."
   list-header: "Modelos <white>({count})</white> <dark_gray>-</dark_gray> pagina <aqua>{page}</aqua>/<aqua>{pages}</aqua>"
@@ -238,6 +336,39 @@ messages:
   holo-list-header: "Hologramas <white>({count})</white>:"
   holo-list-entry: " <aqua>{id}</aqua> <dark_gray>-</dark_gray> <white>{model}</white> <gray>{mode} · {world} {x} {y} {z}"
   holo-use-remove: "<red>Eso es un holograma; usa <white>/{label} holo remove <id></white>."
+  admin-only: "<red>Necesitas el permiso <white>radiantengine.admin</white>."
+  remove-managed: "<red>Esa entidad pertenece a una mascota, un cosmetico o un holograma."
+  pet-usage: "<red>Uso: /{label} pet <gui|summon <mascota>|ride [mascota]|dismiss|list|assign <jugadores> <mascota>|unassign <jugadores> <mascota>>"
+  pet-summoned: "Tu mascota <aqua>{pet}</aqua> te acompaña."
+  pet-dismissed: "Mascota guardada."
+  pet-none: "<red>No tienes ninguna mascota invocada."
+  pet-no-access: "<red>No tienes acceso a la mascota <white>{pet}</white>."
+  pet-unknown: "<red>Mascota desconocida: <white>{pet}</white>."
+  pet-failed: "<red>No se pudo invocar <white>{pet}</white>."
+  pet-assigned: "Mascota <aqua>{pet}</aqua> asignada a <white>{count}</white> jugadores."
+  pet-unassigned: "Mascota <aqua>{pet}</aqua> retirada de <white>{count}</white> jugadores."
+  pet-list: "Mascotas disponibles: <aqua>{pets}"
+  pet-riding: "Montas a <aqua>{pet}</aqua>. <gray>WASD para moverte, Espacio para saltar/subir, Shift para bajar."
+  pet-not-rideable: "<red>La mascota <white>{pet}</white> no se puede montar."
+  pet-no-seat: "<red>No hay sitio libre en <white>{pet}</white>."
+  pet-passenger: "Subiste como pasajero en <aqua>{pet}</aqua>."
+  pet-gui-title: "<dark_gray>Mascotas</dark_gray> <gray>({page}/{pages})</gray>"
+  pet-gui-title-textured: "<white>Mascotas</white> <dark_gray>»</dark_gray> <aqua>{page}</aqua><gray>/</gray><aqua>{pages}</aqua>"
+  cosmetic-usage: "<red>Uso: /{label} cosmetic <gui|equip <cosmetico>|unequip [cosmetico]|list|assign <jugadores> <cosmetico>|unassign <jugadores> <cosmetico>>"
+  cosmetic-equipped: "Cosmetico <light_purple>{cosmetic}</light_purple> equipado."
+  cosmetic-unequipped: "Cosmetico <light_purple>{cosmetic}</light_purple> retirado."
+  cosmetic-unequipped-all: "Retirados <white>{count}</white> cosmeticos."
+  cosmetic-none: "<red>No llevas cosmeticos."
+  cosmetic-not-equipped: "<red>No llevas <white>{cosmetic}</white>."
+  cosmetic-no-access: "<red>No tienes acceso al cosmetico <white>{cosmetic}</white>."
+  cosmetic-unknown: "<red>Cosmetico desconocido: <white>{cosmetic}</white>."
+  cosmetic-limit: "<red>Ya llevas el maximo de <white>{max}</white> cosmeticos."
+  cosmetic-failed: "<red>No se pudo equipar <white>{cosmetic}</white>."
+  cosmetic-assigned: "Cosmetico <light_purple>{cosmetic}</light_purple> asignado a <white>{count}</white> jugadores."
+  cosmetic-unassigned: "Cosmetico <light_purple>{cosmetic}</light_purple> retirado de <white>{count}</white> jugadores."
+  cosmetic-list: "Cosmeticos disponibles: <light_purple>{cosmetics}"
+  cosmetic-gui-title: "<dark_gray>Cosmeticos</dark_gray> <gray>({page}/{pages})</gray>"
+  cosmetic-gui-title-textured: "<white>Cosmeticos</white> <dark_gray>»</dark_gray> <light_purple>{page}</light_purple><gray>/</gray><light_purple>{pages}</light_purple>"
   menu-undisguised: "Disfraz eliminado."
   menu-not-disguised: "<red>No estas disfrazado."
   menu-cleared: "Eliminados <white>{count}</white> modelos cercanos."
@@ -271,4 +402,8 @@ messages:
     - "<yellow>/{label} holo text <id> [above|below] <texto...|none></yellow> <dark_gray>-</dark_gray> <gray>texto flotante (MiniMessage + PAPI)"
     - "<yellow>/{label} holo command <id> <comando...|none></yellow> <dark_gray>-</dark_gray> <gray>comando al hacer clic ('console:' para consola)"
     - "<yellow>/{label} holo mode <id> <spin|billboard|static></yellow> <dark_gray>-</dark_gray> <gray>modo de rotacion"
+    - "<yellow>/{label} pet <gui|summon|ride|dismiss|list></yellow> <dark_gray>-</dark_gray> <gray>mascotas 3D"
+    - "<yellow>/{label} pet <assign|unassign> <jugador1,jugador2> <mascota></yellow> <dark_gray>-</dark_gray> <gray>asignaciones de mascotas"
+    - "<yellow>/{label} cosmetic <gui|equip|unequip|list></yellow> <dark_gray>-</dark_gray> <gray>cosmeticos 3D"
+    - "<yellow>/{label} cosmetic <assign|unassign> <jugador1,jugador2> <cosmetico></yellow> <dark_gray>-</dark_gray> <gray>asignaciones de cosmeticos"
     - "<yellow>/{label} gui</yellow> <dark_gray>-</dark_gray> <gray>menu de modelos"

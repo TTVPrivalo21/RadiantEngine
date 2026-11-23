@@ -32,6 +32,9 @@ public final class OraxenExporter {
         this.settings = settings;
     }
 
+    /** Oraxen id of the custom logo item. */
+    public static final String BRANDING_ID = "radiant_branding_logo";
+
     public static String itemId(String model, String bone) {
         return ("radiant_" + model + "_" + bone).replaceAll("[^a-z0-9_]", "_");
     }
@@ -40,10 +43,24 @@ public final class OraxenExporter {
      * @return true when the exported files differ from what was there before
      */
     public boolean export(Collection<RigBlueprint> blueprints) throws IOException {
+        return export(blueprints, -1, null, null);
+    }
+
+    /**
+     * @param brandingCmd   CustomModelData of the custom logo item (-1 = none)
+     * @param brandingModel model path of the logo item
+     * @param packIcon      custom logo to use as Oraxen pack.png, or null to leave Oraxen's icon untouched
+     */
+    public boolean export(Collection<RigBlueprint> blueprints, int brandingCmd, String brandingModel, byte[] packIcon)
+            throws IOException {
         String ns = settings.namespace;
         File itemsFile = new File(oraxenFolder, "items/" + settings.oraxenItemsFile);
         File targetAssets = new File(oraxenFolder, "pack/assets/" + ns);
-        String before = FileUtil.hash(itemsFile, targetAssets);
+        File oraxenPackIcon = new File(oraxenFolder, "pack/pack.png");
+        String before = FileUtil.hash(itemsFile, targetAssets) + (packIcon == null ? "" : FileUtil.hash(oraxenPackIcon));
+        if (packIcon != null) {
+            FileUtil.writeBytes(oraxenPackIcon, packIcon);
+        }
 
         FileUtil.deleteRecursively(targetAssets);
         FileUtil.copyRecursively(new File(packFolder, "assets/" + ns), targetAssets);
@@ -53,6 +70,16 @@ public final class OraxenExporter {
                 "Generado automaticamente por RadiantEngine. No editar: se sobrescribe en cada /radiant reload.",
                 "Cada entrada es un hueso renderizable de un modelo Blockbench."));
         String material = settings.baseItem.name();
+        if (brandingCmd > 0 && brandingModel != null) {
+            ConfigurationSection logo = yaml.createSection(BRANDING_ID);
+            logo.set("displayname", "<gradient:#00E5FF:#3B82F6>RadiantEngine</gradient>");
+            logo.set("material", material);
+            logo.set("excludeFromInventory", true);
+            ConfigurationSection pack = logo.createSection("Pack");
+            pack.set("generate_model", false);
+            pack.set("model", brandingModel);
+            pack.set("custom_model_data", brandingCmd);
+        }
         for (RigBlueprint bp : blueprints) {
             if (bp.getIconCustomModelData() > 0) {
                 ConfigurationSection icon = yaml.createSection(itemId(bp.getId(), ResourcePackGenerator.ICON));
@@ -84,6 +111,7 @@ public final class OraxenExporter {
             throw new IOException("No se pudo crear " + parent);
         }
         yaml.save(itemsFile);
-        return !before.equals(FileUtil.hash(itemsFile, targetAssets));
+        String after = FileUtil.hash(itemsFile, targetAssets) + (packIcon == null ? "" : FileUtil.hash(oraxenPackIcon));
+        return !before.equals(after);
     }
 }

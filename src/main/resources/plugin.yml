@@ -13,6 +13,8 @@ softdepend:
   - ZNPCsPlus
   - WorldGuard
   - PlaceholderAPI
+  - floodgate
+  - Geyser-Spigot
 commands:
   radiant:
     description: Comandos de RadiantEngine.
@@ -44,6 +46,10 @@ permissions:
       radiantengine.command.mount: true
       radiantengine.command.npc: true
       radiantengine.command.holo: true
+      radiantengine.command.pet: true
+      radiantengine.command.cosmetic: true
+      radiantengine.pet.*: true
+      radiantengine.cosmetic.*: true
       radiantengine.command.gui: true
       radiantengine.bypass.region: true
   radiantengine.command.help:
@@ -93,6 +99,21 @@ permissions:
     default: op
   radiantengine.command.holo:
     description: /radiant holo
+    default: op
+  radiantengine.command.pet:
+    description: /radiant pet (gui, summon, dismiss, list)
+    default: true
+  radiantengine.command.cosmetic:
+    description: /radiant cosmetic (gui, equip, unequip, list)
+    default: true
+  radiantengine.pet.ride:
+    description: Montar la mascota propia si es rideable
+    default: true
+  radiantengine.pet.*:
+    description: Acceso a todas las mascotas (radiantengine.pet.<id> para una concreta)
+    default: op
+  radiantengine.cosmetic.*:
+    description: Acceso a todos los cosmeticos (radiantengine.cosmetic.<id> para uno concreto)
     default: op
   radiantengine.command.gui:
     description: /radiant gui

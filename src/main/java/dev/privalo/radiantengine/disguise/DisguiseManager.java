@@ -91,7 +91,10 @@ public final class DisguiseManager {
 
     public Settings.SelfView getSelfView(Player player) {
         Settings.SelfView mode = selfViews.get(player.getUniqueId());
-        return mode != null ? mode : plugin.getSettings().disguiseSelfView;
+        if (mode != null) {
+            return mode;
+        }
+        return plugin.getBedrock().isBedrock(player) ? plugin.getBedrock().disguiseSelfView() : plugin.getSettings().disguiseSelfView;
     }
 
     public void setSelfView(Player player, Settings.SelfView mode) {

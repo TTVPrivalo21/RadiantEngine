@@ -22,6 +22,11 @@ public final class Channel {
         sorted = keyframes.toArray(new Keyframe[0]);
     }
 
+    /** Keyframes sorted by time (read only). */
+    public java.util.List<Keyframe> keyframes() {
+        return java.util.List.of(sorted);
+    }
+
     public boolean isEmpty() {
         return sorted.length == 0;
     }

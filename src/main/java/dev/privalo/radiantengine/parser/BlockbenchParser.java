@@ -600,6 +600,8 @@ public final class BlockbenchParser {
                     vecOrNull(k, "bezier_left_value"),
                     vecOrNull(k, "bezier_right_time"),
                     vecOrNull(k, "bezier_right_value"));
+            String[] preRaw = raw(points.get(0).getAsJsonObject(), def);
+            keyframe.setRaw(preRaw, points.size() > 1 ? raw(points.get(1).getAsJsonObject(), def) : preRaw);
             Channel target = switch (channel) {
                 case "position" -> timeline.position();
                 case "rotation" -> timeline.rotation();
@@ -610,6 +612,16 @@ public final class BlockbenchParser {
                 target.add(keyframe);
             }
         }
+    }
+
+    private static String[] raw(JsonObject p, double def) {
+        String[] out = new String[3];
+        String[] axes = {"x", "y", "z"};
+        for (int i = 0; i < 3; i++) {
+            String v = asString(p.get(axes[i])).trim();
+            out[i] = v.isEmpty() ? (def == 1.0 ? "1" : "0") : v;
+        }
+        return out;
     }
 
     private Molang.Compiled[] point(JsonObject p, double def) {

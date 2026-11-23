@@ -26,6 +26,8 @@ public final class GuiTextures {
 
     /** Font key (namespace:radiant_gui). */
     public static final String FONT = "radiant_gui";
+    /** Menu background texture (relative to assets/<namespace>/textures/). */
+    public static final String TEXTURE = "radiant/gui/models_menu.png";
     /** Menu background glyph. */
     public static final char BACKGROUND = '';
     /** Moves the cursor 8 px left (title starts at x = 8). */
@@ -51,7 +53,17 @@ public final class GuiTextures {
     }
 
     public static void write(File packFolder, String namespace) throws IOException {
-        FileUtil.writeBytes(new File(packFolder, "assets/" + namespace + "/textures/radiant/gui/models_menu.png"), menuTexture());
+        write(packFolder, namespace, null);
+    }
+
+    /**
+     * Writes the menu font and texture.
+     *
+     * @param headerLogo custom logo drawn at the right side of the header (already scaled), or null for the default
+     *                   decoration
+     */
+    public static void write(File packFolder, String namespace, BufferedImage headerLogo) throws IOException {
+        FileUtil.writeBytes(new File(packFolder, "assets/" + namespace + "/textures/radiant/gui/models_menu.png"), menuTexture(headerLogo));
 
         JsonObject bitmap = new JsonObject();
         bitmap.addProperty("type", "bitmap");
@@ -79,7 +91,7 @@ public final class GuiTextures {
                 new GsonBuilder().disableHtmlEscaping().setPrettyPrinting().create().toJson(font));
     }
 
-    static byte[] menuTexture() throws IOException {
+    static byte[] menuTexture(BufferedImage headerLogo) throws IOException {
         BufferedImage img = new BufferedImage(WIDTH, HEIGHT, BufferedImage.TYPE_INT_ARGB);
         Graphics2D g = img.createGraphics();
         g.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_OFF);
@@ -95,11 +107,18 @@ public final class GuiTextures {
         // accent line under the header
         g.setPaint(new GradientPaint(0, 0, new Color(0x36D1DC), WIDTH, 0, new Color(0x8E54E9)));
         g.fillRect(4, 15, WIDTH - 8, 1);
-        // tiny decorative dots on the right side of the header
-        g.setColor(new Color(0x36D1DC));
-        g.fillRect(WIDTH - 14, 6, 2, 2);
-        g.setColor(new Color(0x8E54E9));
-        g.fillRect(WIDTH - 10, 6, 2, 2);
+        if (headerLogo != null) {
+            // custom logo on the right side of the header (title text starts at x = 8 on the left)
+            int x = WIDTH - 5 - headerLogo.getWidth();
+            int y = Math.max(1, (15 - headerLogo.getHeight()) / 2);
+            g.drawImage(headerLogo, x, y, null);
+        } else {
+            // tiny decorative dots on the right side of the header
+            g.setColor(new Color(0x36D1DC));
+            g.fillRect(WIDTH - 14, 6, 2, 2);
+            g.setColor(new Color(0x8E54E9));
+            g.fillRect(WIDTH - 10, 6, 2, 2);
+        }
 
         // Outer border
         g.setColor(new Color(0x343A56));

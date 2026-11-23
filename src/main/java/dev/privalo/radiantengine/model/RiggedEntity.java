@@ -50,6 +50,7 @@ public final class RiggedEntity {
     private int dyingTicks;
     private boolean disguise;
     private boolean destroyed;
+    private boolean hitboxEnabled = true;
 
     RiggedEntity(RadiantEngine plugin, Entity base) {
         this.plugin = plugin;
@@ -189,7 +190,7 @@ public final class RiggedEntity {
     // ------------------------------------------------------------------ hitbox
 
     void updateMainHitbox() {
-        if (!plugin.getSettings().mainHitbox || base instanceof Interaction || dying) {
+        if (!plugin.getSettings().mainHitbox || !hitboxEnabled || base instanceof Interaction || dying) {
             removeMainHitbox();
             return;
         }
@@ -326,6 +327,32 @@ public final class RiggedEntity {
 
     public void setDisguise(boolean disguise) {
         this.disguise = disguise;
+    }
+
+    /** Enables or disables the main hitbox Interaction (disabled for cosmetics). */
+    public void setHitboxEnabled(boolean enabled) {
+        this.hitboxEnabled = enabled;
+        updateMainHitbox();
+    }
+
+    /** Every clickable hitbox of this rig (main hitbox, sub hitboxes and an Interaction base). */
+    public java.util.List<Entity> hitboxEntities() {
+        java.util.List<Entity> list = new ArrayList<>();
+        if (mainHitbox != null && mainHitbox.isValid()) {
+            list.add(mainHitbox);
+        }
+        if (base instanceof Interaction) {
+            list.add(base);
+        }
+        for (ActiveRig m : models.values()) {
+            for (dev.privalo.radiantengine.model.bone.RigBone bone : m.getBones().values()) {
+                dev.privalo.radiantengine.model.bone.SubHitboxBehavior sub = bone.getBehavior(dev.privalo.radiantengine.model.bone.SubHitboxBehavior.class);
+                if (sub != null) {
+                    list.addAll(sub.entities());
+                }
+            }
+        }
+        return list;
     }
 
     public Interaction getMainHitbox() {

@@ -28,7 +28,7 @@ import java.util.List;
 /**
  * Paginated model browser: preview, spawn, summon, disguise and manage loaded models.
  */
-public final class RigMenu implements InventoryHolder {
+public final class RigMenu implements ClickableMenu {
 
     private static final int PAGE_SIZE = 45;
     private static final int SLOT_PREV = 45;
@@ -50,7 +50,7 @@ public final class RigMenu implements InventoryHolder {
         this.ids = new ArrayList<>(plugin.getRegistry().all().keySet());
         this.pages = Math.max(1, (ids.size() + PAGE_SIZE - 1) / PAGE_SIZE);
         this.page = Math.max(0, Math.min(page, pages - 1));
-        this.textured = plugin.getSettings().guiCustomTexture && PaperGui.isAvailable();
+        this.textured = plugin.getSettings().guiCustomTexture && plugin.isGuiTextureReady() && PaperGui.isAvailable();
         String title = (textured ? plugin.getSettings().guiTexturedTitle : plugin.getSettings().guiTitle)
                 .replace("{page}", String.valueOf(this.page + 1))
                 .replace("{pages}", String.valueOf(pages));
@@ -101,7 +101,7 @@ public final class RigMenu implements InventoryHolder {
         inventory.setItem(SLOT_CLEAR, button(Material.TNT, ChatColor.RED + "Limpiar modelos cercanos",
                 ChatColor.GRAY + "Elimina en 12 bloques los modelos",
                 ChatColor.GRAY + "creados por RadiantEngine."));
-        inventory.setItem(SLOT_INFO, button(Material.KNOWLEDGE_BOOK, ChatColor.GOLD + "" + ChatColor.BOLD + "RadiantEngine",
+        inventory.setItem(SLOT_INFO, plugin.getItemResolver().branded(button(Material.KNOWLEDGE_BOOK, ChatColor.GOLD + "" + ChatColor.BOLD + "RadiantEngine",
                 SEP,
                 ChatColor.GRAY + "Modelos cargados  " + ChatColor.WHITE + ids.size(),
                 ChatColor.GRAY + "Entidades activas  " + ChatColor.WHITE + plugin.getRigManager().all().size(),
@@ -110,7 +110,7 @@ public final class RigMenu implements InventoryHolder {
                 ChatColor.LIGHT_PURPLE + "Click derecho " + ChatColor.DARK_GRAY + "» " + ChatColor.GRAY + "disfrazarse",
                 ChatColor.GREEN + "Shift + izquierdo " + ChatColor.DARK_GRAY + "» " + ChatColor.GRAY + "modelo estatico",
                 ChatColor.YELLOW + "Shift + derecho " + ChatColor.DARK_GRAY + "» " + ChatColor.GRAY + "previsualizar "
-                        + plugin.getSettings().previewSeconds + "s"));
+                        + plugin.getSettings().previewSeconds + "s")));
     }
 
     private ItemStack icon(RigBlueprint bp) {
@@ -161,6 +161,7 @@ public final class RigMenu implements InventoryHolder {
         }
         return item;
     }
+    @Override
     public void handleClick(Player player, int slot, ClickType click) {
         if (slot < 0 || slot >= 54) {
             return;
@@ -200,7 +201,7 @@ public final class RigMenu implements InventoryHolder {
                             || base.getLocation().distanceSquared(player.getLocation()) > 144) {
                         continue;
                     }
-                    if (plugin.getKeys().flag(base, plugin.getKeys().owned)) {
+                    if (plugin.getKeys().flag(base, plugin.getKeys().owned) && !plugin.isManagedBase(base)) {
                         plugin.getRigManager().removeRig(base, true);
                         removed++;
                     }

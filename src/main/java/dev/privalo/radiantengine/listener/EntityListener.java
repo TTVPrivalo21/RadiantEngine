@@ -61,6 +61,10 @@ public final class EntityListener implements Listener {
         if (attacker.equals(base)) {
             return;
         }
+        if (plugin.getMountManager().getRiddenEntity(attacker) == me) {
+            // passengers never damage their own vehicle
+            return;
+        }
         if (attacker instanceof Player clicker && plugin.getNpcManager().handleInteract(base, clicker, false)) {
             return;
         }
@@ -99,14 +103,8 @@ public final class EntityListener implements Listener {
         }
         if (plugin.getSettings().rightClickMount && !player.isSneaking()) {
             for (ActiveRig model : me.models()) {
-                boolean hasFree = false;
-                for (SeatBehavior seat : model.getSeats()) {
-                    if (!seat.isOccupied()) {
-                        hasFree = true;
-                        break;
-                    }
-                }
-                if (hasFree && plugin.getMountManager().mount(player, model, null, true)) {
+                // drives through the "mount" bone, or the base entity when the model has none
+                if (plugin.getMountManager().mount(player, model, null, true)) {
                     return;
                 }
             }

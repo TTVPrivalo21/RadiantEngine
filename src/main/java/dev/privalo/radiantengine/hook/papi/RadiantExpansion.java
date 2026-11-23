@@ -68,6 +68,20 @@ public final class RadiantExpansion extends PlaceholderExpansion {
             case "loaded_blueprints" -> {
                 return String.valueOf(plugin.getRegistry().all().size());
             }
+            case "player_pet" -> {
+                Player player = offline == null ? null : offline.getPlayer();
+                String pet = player == null ? null : plugin.getPetManager().getEquipped(player);
+                return pet == null ? none : pet;
+            }
+            case "player_cosmetics" -> {
+                Player player = offline == null ? null : offline.getPlayer();
+                java.util.List<String> worn = player == null ? java.util.List.of() : plugin.getCosmeticManager().getEquipped(player);
+                return worn.isEmpty() ? none : String.join(", ", worn);
+            }
+            case "player_bedrock" -> {
+                Player player = offline == null ? null : offline.getPlayer();
+                return String.valueOf(player != null && plugin.getBedrock().isBedrock(player));
+            }
             case "npc_models" -> {
                 return String.valueOf(plugin.getNpcManager().countAssignments());
             }

@@ -2,7 +2,7 @@ package dev.privalo.radiantengine.listener;
 
 import dev.privalo.radiantengine.RadiantEngine;
 import dev.privalo.radiantengine.animation.runtime.RigState;
-import dev.privalo.radiantengine.gui.RigMenu;
+import dev.privalo.radiantengine.gui.ClickableMenu;
 import dev.privalo.radiantengine.model.ActiveRig;
 import dev.privalo.radiantengine.model.RiggedEntity;
 import org.bukkit.entity.Player;
@@ -56,6 +56,14 @@ public final class PlayerListener implements Listener {
         }
     }
 
+    /** Flying / swimming mounts use sneak to descend instead of dismounting (shift-action: DESCEND). */
+    @EventHandler(priority = EventPriority.HIGH, ignoreCancelled = true)
+    public void onSneakDismount(EntityDismountEvent event) {
+        if (plugin.getMountManager().shouldBlockDismount(event.getEntity(), event.getDismounted())) {
+            event.setCancelled(true);
+        }
+    }
+
     @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
     public void onDismount(EntityDismountEvent event) {
         plugin.getMountManager().handleDismount(event.getEntity(), event.getDismounted());
@@ -63,10 +71,10 @@ public final class PlayerListener implements Listener {
 
     @EventHandler(priority = EventPriority.HIGH)
     public void onMenuClick(InventoryClickEvent event) {
-        if (event.getInventory().getHolder() instanceof RigMenu menu) {
+        if (event.getInventory().getHolder() instanceof ClickableMenu menu) {
             event.setCancelled(true);
             if (event.getWhoClicked() instanceof Player player && event.getClickedInventory() != null
-                    && event.getClickedInventory().getHolder() instanceof RigMenu) {
+                    && event.getClickedInventory().getHolder() instanceof ClickableMenu) {
                 menu.handleClick(player, event.getRawSlot(), event.getClick());
             }
         }
@@ -74,7 +82,7 @@ public final class PlayerListener implements Listener {
 
     @EventHandler(priority = EventPriority.HIGH)
     public void onMenuDrag(InventoryDragEvent event) {
-        if (event.getInventory().getHolder() instanceof RigMenu) {
+        if (event.getInventory().getHolder() instanceof ClickableMenu) {
             event.setCancelled(true);
         }
     }
