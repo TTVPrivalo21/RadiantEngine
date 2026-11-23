@@ -180,55 +180,199 @@ public final class RadiantCommand implements TabExecutor {
 
     // ------------------------------------------------------------------ spawning
 
+    // ------------------------------------------------------------------ spawning
+
+    /** Positional arguments plus the optional named {@code count:} / {@code spread:} values. */
+    private record MultiArgs(List<String> positional, Integer count, Double spread) {
+    }
+
+    /**
+     * Extracts named {@code count:N} / {@code c:N} / {@code spread:R} / {@code s:R} / {@code radius:R} (also with
+     * {@code =}) tokens from {@code args[from..]} and returns the remaining positional arguments.
+     */
+    private static MultiArgs splitMulti(String[] args, int from) {
+        List<String> positional = new ArrayList<>();
+        Integer count = null;
+        Double spread = null;
+        for (int i = from; i < args.length; i++) {
+            String a = args[i];
+            int sep = Math.max(a.indexOf(':'), a.indexOf('='));
+            String key = sep > 0 ? a.substring(0, sep).toLowerCase(Locale.ROOT) : "";
+            String value = sep > 0 ? a.substring(sep + 1) : "";
+            switch (key) {
+                case "count", "c", "amount", "n" -> count = Integer.parseInt(value);
+                case "spread", "s", "radius", "r" -> spread = Double.parseDouble(value);
+                default -> positional.add(a);
+            }
+        }
+        return new MultiArgs(positional, count, spread);
+    }
+
+    private static boolean isCoord(String s) {
+        return s.startsWith("~") ? s.length() == 1 || isNumber(s.substring(1)) : isNumber(s);
+    }
+
+    /** Applies the configured cap; tells the sender when the requested amount was reduced. */
+    private int checkedCount(CommandSender sender, Integer requested) {
+        int count = requested == null ? 1 : requested;
+        if (count < 1) {
+            lang.send(sender, "invalid-count", "value", count);
+            return -1;
+        }
+        int max = plugin.getSettings().spawnMaxCount;
+        if (count > max) {
+            lang.send(sender, "spawn-count-capped", "requested", count, "max", max);
+            return max;
+        }
+        return count;
+    }
+
+    private double checkedSpread(CommandSender sender, Double requested, int count) {
+        double spread = requested == null ? 0 : requested;
+        if (spread < 0) {
+            lang.send(sender, "invalid-spread", "value", trim(spread));
+            return -1;
+        }
+        double max = plugin.getSettings().spawnMaxSpread;
+        if (spread > max) {
+            lang.send(sender, "spawn-spread-capped", "requested", trim(spread), "max", trim(max));
+            spread = max;
+        }
+        return count > 1 && spread <= 0 ? plugin.getSettings().spawnDefaultSpread : spread;
+    }
+
+    /**
+     * /radiant spawn &lt;model&gt; [entity] [count] [spread]   (named: count:N spread:R in any position)
+     */
     private void spawn(CommandSender sender, String[] args) {
         Player player = requirePlayer(sender);
         RigBlueprint bp = player == null ? null : requireModel(sender, args, 1);
         if (bp == null) {
             return;
         }
-        String typeName = args.length > 2 ? args[2] : plugin.getSettings().defaultEntity;
+        MultiArgs multi = splitMulti(args, 2);
+        List<String> pos = multi.positional();
+        int i = 0;
+        String typeName = plugin.getSettings().defaultEntity;
+        if (i < pos.size() && !isNumber(pos.get(i))) {
+            typeName = pos.get(i++);
+        }
+        Integer countArg = multi.count();
+        Double spreadArg = multi.spread();
+        if (countArg == null && i < pos.size()) {
+            countArg = Integer.parseInt(pos.get(i++));
+        }
+        if (spreadArg == null && i < pos.size()) {
+            spreadArg = Double.parseDouble(pos.get(i));
+        }
         EntityType type = EntityCompat.entityType(typeName);
         if (type == null || !type.isSpawnable() || type.getEntityClass() == null
                 || Player.class.isAssignableFrom(type.getEntityClass())) {
             lang.send(sender, "invalid-entity", "entity", typeName);
             return;
         }
-        if (!plugin.getProtection().checkSpawn(player, player.getLocation())) {
+        int count = checkedCount(sender, countArg);
+        double spread = count < 1 ? -1 : checkedSpread(sender, spreadArg, count);
+        if (count < 1 || spread < 0) {
             return;
         }
-        ActiveRig rig = plugin.getRigManager().spawnRig(player.getLocation(), type, bp.getId());
-        if (rig == null) {
-            lang.send(sender, "spawn-failed");
-        } else {
-            lang.send(sender, "spawn-success", "model", bp.getId(), "entity", type.getKey().getKey());
+        Location center = player.getLocation();
+        if (!plugin.getProtection().checkSpawn(player, center)) {
+            return;
         }
+        int spawned = 0;
+        int denied = 0;
+        for (Location point : plugin.getRigManager().spreadLocations(center, count, spread)) {
+            if (!plugin.getProtection().canSpawn(player, point)) {
+                denied++;
+                continue;
+            }
+            if (plugin.getRigManager().spawnRig(point, type, bp.getId()) != null) {
+                spawned++;
+            }
+        }
+        reportSpawn(sender, "spawn", bp.getId(), type.getKey().getKey(), count, spread, spawned, denied);
     }
 
+    /**
+     * /radiant summon &lt;model&gt; [count] [spread]
+     * /radiant summon &lt;model&gt; &lt;x y z&gt; [yaw] [count] [spread]   (named: count:N spread:R in any position)
+     */
     private void summon(CommandSender sender, String[] args) {
         RigBlueprint bp = requireModel(sender, args, 1);
         if (bp == null) {
             return;
         }
+        MultiArgs multi = splitMulti(args, 2);
+        List<String> pos = multi.positional();
+        Integer countArg = multi.count();
+        Double spreadArg = multi.spread();
         Location loc;
-        if (args.length >= 5) {
+        int i;
+        if (pos.size() >= 3 && isCoord(pos.get(0)) && isCoord(pos.get(1)) && isCoord(pos.get(2))) {
             Location ref = sender instanceof Player p ? p.getLocation() : Bukkit.getWorlds().get(0).getSpawnLocation();
-            loc = new Location(ref.getWorld(), coord(args[2], ref.getX()), coord(args[3], ref.getY()), coord(args[4], ref.getZ()));
-            loc.setYaw(args.length >= 6 ? Float.parseFloat(args[5]) : ref.getYaw());
+            loc = new Location(ref.getWorld(), coord(pos.get(0), ref.getX()), coord(pos.get(1), ref.getY()), coord(pos.get(2), ref.getZ()));
+            loc.setYaw(pos.size() >= 4 ? Float.parseFloat(pos.get(3)) : ref.getYaw());
+            i = 4;
         } else if (sender instanceof Player p) {
             loc = p.getLocation();
             loc.setPitch(0f);
+            i = 0;
         } else {
             lang.send(sender, "summon-console-coords");
             return;
         }
-        if (sender instanceof Player p && !plugin.getProtection().checkSpawn(p, loc)) {
+        if (countArg == null && i < pos.size()) {
+            countArg = Integer.parseInt(pos.get(i++));
+        }
+        if (spreadArg == null && i < pos.size()) {
+            spreadArg = Double.parseDouble(pos.get(i));
+        }
+        int count = checkedCount(sender, countArg);
+        double spread = count < 1 ? -1 : checkedSpread(sender, spreadArg, count);
+        if (count < 1 || spread < 0) {
             return;
         }
-        ActiveRig rig = plugin.getRigManager().summonProp(loc, bp.getId(), true);
-        if (rig == null) {
-            lang.send(sender, "summon-failed");
+        Player player = sender instanceof Player p ? p : null;
+        if (player != null && !plugin.getProtection().checkSpawn(player, loc)) {
+            return;
+        }
+        int spawned = 0;
+        int denied = 0;
+        for (Location point : plugin.getRigManager().spreadLocations(loc, count, spread)) {
+            if (player != null && !plugin.getProtection().canSpawn(player, point)) {
+                denied++;
+                continue;
+            }
+            if (plugin.getRigManager().summonProp(point, bp.getId(), true) != null) {
+                spawned++;
+            }
+        }
+        reportSpawn(sender, "summon", bp.getId(), null, count, spread, spawned, denied);
+    }
+
+    private void reportSpawn(CommandSender sender, String kind, String model, String entity, int requested,
+                             double spread, int spawned, int denied) {
+        if (requested == 1) {
+            if (spawned == 1) {
+                if (entity != null) {
+                    lang.send(sender, kind + "-success", "model", model, "entity", entity);
+                } else {
+                    lang.send(sender, kind + "-success", "model", model);
+                }
+            } else {
+                lang.send(sender, kind + "-failed");
+            }
+            return;
+        }
+        if (spawned == 0) {
+            lang.send(sender, kind + "-failed");
         } else {
-            lang.send(sender, "summon-success", "model", bp.getId());
+            lang.send(sender, kind + "-success-multi", "count", spawned, "requested", requested, "model", model,
+                    "entity", entity == null ? "-" : entity, "spread", trim(spread));
+        }
+        if (denied > 0) {
+            lang.send(sender, "spawn-region-skipped", "count", denied);
         }
     }
 
@@ -969,20 +1113,38 @@ public final class RadiantCommand implements TabExecutor {
                 if (args.length == 2) {
                     return filter(models, args[1]);
                 }
+                List<String> options = new ArrayList<>(List.of("count:", "spread:"));
                 if (args.length == 3) {
-                    return filter(EntityCompat.entityTypeNames(), args[2]);
+                    options.addAll(EntityCompat.entityTypeNames());
+                    options.addAll(List.of("1", "5", "10"));
+                } else if (args.length == 4) {
+                    options.addAll(isNumber(args[2]) ? List.of("2", "4", "8") : List.of("1", "5", "10"));
+                } else if (args.length == 5 && !isNumber(args[2])) {
+                    options.addAll(List.of("2", "4", "8"));
                 }
+                return filter(options, args[args.length - 1]);
             }
             case "summon" -> {
                 if (args.length == 2) {
                     return filter(models, args[1]);
                 }
+                List<String> options = new ArrayList<>(List.of("count:", "spread:"));
+                boolean coords = args.length > 5 && isCoord(args[2]) && isCoord(args[3]) && isCoord(args[4]);
                 if (args.length >= 3 && args.length <= 5) {
-                    return filter(List.of("~"), args[args.length - 1]);
+                    options.add("~");
+                    if (args.length == 3) {
+                        options.addAll(List.of("1", "5", "10"));
+                    } else if (args.length == 4 && isNumber(args[2])) {
+                        options.addAll(List.of("2", "4", "8"));
+                    }
+                } else if (coords && args.length == 6 && sender instanceof Player p) {
+                    options.add(String.valueOf(Math.round(p.getLocation().getYaw())));
+                } else if (coords && args.length == 7) {
+                    options.addAll(List.of("1", "5", "10"));
+                } else if (coords && args.length == 8) {
+                    options.addAll(List.of("2", "4", "8"));
                 }
-                if (args.length == 6 && sender instanceof Player p) {
-                    return filter(List.of(String.valueOf(Math.round(p.getLocation().getYaw()))), args[5]);
-                }
+                return filter(options, args[args.length - 1]);
             }
             case "kill" -> {
                 if (args.length == 2) {

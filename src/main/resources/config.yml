@@ -73,6 +73,19 @@ spawn:
   # Hace invisible la entidad base (el modelo la sustituye visualmente)
   hide-base: true
   clear-equipment: true
+  # Varias instancias: /radiant spawn <modelo> [entidad] [cantidad] [radio] y /radiant summon <modelo> [cantidad] [radio]
+  # (tambien count:N y spread:R en cualquier posicion, p. ej. /radiant summon estatua ~ ~ ~ count:6 spread:4)
+  multi:
+    # Maximo de instancias por comando (evita spawns gigantes por error). La API no aplica este limite.
+    max-count: 50
+    # Radio maximo permitido en los comandos (bloques)
+    max-spread: 64.0
+    # Radio usado cuando cantidad > 1 y no se indica radio
+    default-spread: 2.0
+    # Separacion minima entre instancias; el radio crece si es demasiado pequeño para la cantidad
+    min-spacing: 0.8
+    # Colocar cada instancia sobre suelo seguro cercano (bloque solido debajo, 2 bloques libres, sin lava)
+    safe-ground: true
 
 disguise:
   # Como ve el jugador disfrazado su propio modelo:
@@ -280,6 +293,13 @@ messages:
   summon-success: "Modelo estatico <aqua>{model}</aqua> colocado."
   summon-failed: "<red>No se pudo colocar el modelo."
   summon-console-coords: "<red>Indica coordenadas desde la consola."
+  spawn-success-multi: "Invocados <white>{count}</white>/<white>{requested}</white> <aqua>{model}</aqua> sobre <white>{entity}</white> <dark_gray>(radio {spread})</dark_gray>."
+  summon-success-multi: "Colocados <white>{count}</white>/<white>{requested}</white> modelos estaticos <aqua>{model}</aqua> <dark_gray>(radio {spread})</dark_gray>."
+  spawn-count-capped: "<yellow>Cantidad limitada a <white>{max}</white> (pediste {requested}; ver spawn.multi.max-count)."
+  spawn-spread-capped: "<yellow>Radio limitado a <white>{max}</white> bloques (pediste {requested})."
+  spawn-region-skipped: "<yellow>{count} instancias no se colocaron por la proteccion de la zona."
+  invalid-count: "<red>Cantidad invalida: <white>{value}</white> (minimo 1)."
+  invalid-spread: "<red>Radio invalido: <white>{value}</white> (minimo 0)."
   apply-success: "Modelo <aqua>{model}</aqua> aplicado a <white>{entity}</white>."
   apply-failed: "<red>No se pudo aplicar el modelo."
   apply-no-target: "<red>Mira a una entidad (no jugador) a menos de 16 bloques o selecciona un NPC de Citizens."
@@ -383,8 +403,8 @@ messages:
     - "<yellow>/{label} reload [models|config|pack]</yellow> <dark_gray>-</dark_gray> <gray>recarga modelos, configuracion o el resource pack"
     - "<yellow>/{label} list [pagina]</yellow> <dark_gray>-</dark_gray> <gray>lista los modelos cargados"
     - "<yellow>/{label} info <modelo></yellow> <dark_gray>-</dark_gray> <gray>huesos, animaciones y hitbox"
-    - "<yellow>/{label} spawn <modelo> [entidad]</yellow> <dark_gray>-</dark_gray> <gray>invoca un mob con el modelo"
-    - "<yellow>/{label} summon <modelo> [x y z [yaw]]</yellow> <dark_gray>-</dark_gray> <gray>coloca un modelo estatico"
+    - "<yellow>/{label} spawn <modelo> [entidad] [cantidad] [radio]</yellow> <dark_gray>-</dark_gray> <gray>invoca uno o varios mobs con el modelo"
+    - "<yellow>/{label} summon <modelo> [x y z [yaw]] [cantidad] [radio]</yellow> <dark_gray>-</dark_gray> <gray>coloca uno o varios modelos estaticos (count:N spread:R)"
     - "<yellow>/{label} apply <modelo> [ocultarBase]</yellow> <dark_gray>-</dark_gray> <gray>aplica el modelo a la entidad que miras o al NPC seleccionado"
     - "<yellow>/{label} remove [radio]</yellow> <dark_gray>-</dark_gray> <gray>quita el modelo de la entidad que miras o en un radio"
     - "<yellow>/{label} kill [modelo] [radio]</yellow> <dark_gray>-</dark_gray> <gray>elimina rigs (opcionalmente de un modelo)"

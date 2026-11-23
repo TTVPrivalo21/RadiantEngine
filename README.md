@@ -87,8 +87,8 @@ Aliases: `/re`, `/rengine`
 | `/radiant reload [models\|config\|pack]` | Reload models, configuration or resource pack. | `radiantengine.command.reload` |
 | `/radiant list [page]` | List loaded models. | `radiantengine.command.list` |
 | `/radiant info <model>` | Display model information. | `radiantengine.command.list` |
-| `/radiant spawn <model> [entity]` | Spawn an entity with a model. | `radiantengine.command.spawn` |
-| `/radiant summon <model> [x y z [yaw]]` | Spawn a static model. | `radiantengine.command.summon` |
+| `/radiant spawn <model> [entity] [count] [spread]` | Spawn one or more entities with a model. | `radiantengine.command.spawn` |
+| `/radiant summon <model> [x y z [yaw]] [count] [spread]` | Spawn one or more static models. | `radiantengine.command.summon` |
 | `/radiant apply <model> [hideBase]` | Apply a model to a targeted entity or selected Citizens NPC. | `radiantengine.command.apply` |
 | `/radiant remove [radius]` | Remove nearby models. | `radiantengine.command.remove` |
 | `/radiant kill [model] [radius]` | Remove active rigs. | `radiantengine.command.kill` |
@@ -115,6 +115,30 @@ Additional permissions:
 - `radiantengine.bypass.region` — Bypass region restrictions.
 - `radiantengine.pet.<id>` / `radiantengine.pet.*` — Access to pets.
 - `radiantengine.cosmetic.<id>` / `radiantengine.cosmetic.*` — Access to cosmetics.
+
+## Spawning Multiple Models
+
+`/radiant spawn` and `/radiant summon` accept an optional amount and spread radius:
+
+```text
+/radiant spawn dragon 5                 # 5 dragons on the default entity, default spread (2 blocks)
+/radiant spawn dragon husk 8 6          # 8 dragons on husks inside a 6 block radius
+/radiant summon statue 4 3              # 4 static statues around you, 3 block radius
+/radiant summon statue 100 64 -20 90 6 5   # at coordinates, yaw 90, 6 statues, 5 block radius
+/radiant summon statue ~ ~ ~ count:10 spread:8   # named arguments work in any position
+```
+
+- Instances follow an even golden-angle spiral, so they never overlap; the radius grows automatically when it is too
+  small for the amount (`spawn.multi.min-spacing`).
+- Each instance is placed on nearby safe ground (`spawn.multi.safe-ground`) and WorldGuard's `radiant-allow-spawn` is
+  checked for every point.
+- `spawn.multi.max-count` (default 50) and `spawn.multi.max-spread` cap the commands to avoid accidental huge spawns.
+
+```java
+List<ActiveRig> group = RadiantAPI.spawnRigs(location, "dragon", EntityType.HUSK, 5, 4.0);
+List<ActiveRig> props = RadiantAPI.spawnStaticRigs(location, "statue", 6, 5.0);
+List<Location> preview = RadiantAPI.getSpreadLocations(location, 6, 5.0);
+```
 
 ## Mounts and Vehicles
 

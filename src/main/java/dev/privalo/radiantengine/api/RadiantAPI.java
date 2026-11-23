@@ -113,6 +113,41 @@ public final class RadiantAPI {
     }
 
     /**
+     * Spawns several living rigs spread around a point. Points follow an even spiral inside {@code spread} (they never
+     * coincide) and are moved to safe ground when {@code spawn.multi.safe-ground} is enabled. Unlike the commands, the
+     * API does not apply {@code spawn.multi.max-count}.
+     *
+     * @param center   center of the group (its yaw is used by every instance)
+     * @param modelId  blueprint id
+     * @param baseType entity type providing AI, hitbox and sounds
+     * @param count    number of instances (at least 1)
+     * @param spread   radius in blocks; 0 with more than one instance uses {@code spawn.multi.default-spread}
+     * @return the rigs that were spawned (empty if the model or type is invalid)
+     */
+    public static List<ActiveRig> spawnRigs(Location center, String modelId, EntityType baseType, int count, double spread) {
+        return getPlugin().getRigManager().spawnRigs(center, baseType, modelId, count, spread);
+    }
+
+    /**
+     * Places several static rigs spread around a point (same distribution rules as
+     * {@link #spawnRigs(Location, String, EntityType, int, double)}). They are saved with their chunks.
+     *
+     * @return the rigs that were placed
+     */
+    public static List<ActiveRig> spawnStaticRigs(Location center, String modelId, int count, double spread) {
+        return getPlugin().getRigManager().summonProps(center, modelId, count, spread, true);
+    }
+
+    /**
+     * Spawn points the multi-spawn methods would use, without spawning anything (useful for previews or particles).
+     *
+     * @return {@code count} locations around {@code center}
+     */
+    public static List<Location> getSpreadLocations(Location center, int count, double spread) {
+        return getPlugin().getRigManager().spreadLocations(center, count, spread);
+    }
+
+    /**
      * Attaches a model to an existing entity. The model id is stored on the entity and restored after restarts.
      *
      * @param entity  base entity

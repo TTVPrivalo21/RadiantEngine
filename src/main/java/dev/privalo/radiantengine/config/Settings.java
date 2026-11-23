@@ -55,6 +55,11 @@ public final class Settings {
     public final boolean spawnSilent;
     public final boolean hideBase;
     public final boolean clearEquipment;
+    public final int spawnMaxCount;
+    public final double spawnDefaultSpread;
+    public final double spawnMinSpacing;
+    public final double spawnMaxSpread;
+    public final boolean spawnSafeGround;
 
     /** How a disguised player sees their own model. */
     public enum SelfView {
@@ -177,6 +182,11 @@ public final class Settings {
         this.spawnSilent = c.getBoolean("spawn.silent", false);
         this.hideBase = c.getBoolean("spawn.hide-base", true);
         this.clearEquipment = c.getBoolean("spawn.clear-equipment", true);
+        this.spawnMaxCount = Math.max(1, c.getInt("spawn.multi.max-count", 50));
+        this.spawnDefaultSpread = Math.max(0, c.getDouble("spawn.multi.default-spread", 2.0));
+        this.spawnMinSpacing = Math.max(0, c.getDouble("spawn.multi.min-spacing", 0.8));
+        this.spawnMaxSpread = Math.max(0, c.getDouble("spawn.multi.max-spread", 64.0));
+        this.spawnSafeGround = c.getBoolean("spawn.multi.safe-ground", true);
 
         this.disguiseSelfView = SelfView.parse(c.getString("disguise.self-view"), SelfView.HEADLESS);
         this.disguiseUseHide = "HIDE".equalsIgnoreCase(c.getString("disguise.hide-mode", "INVISIBILITY"));

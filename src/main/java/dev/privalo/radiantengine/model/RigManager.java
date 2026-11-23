@@ -254,6 +254,52 @@ public final class RigManager {
         return addModel(base, bp.getId(), true);
     }
 
+    // ------------------------------------------------------------------ multiple instances
+
+    /**
+     * Spawn points for {@code count} instances around {@code center}. A spread of 0 (or less) with more than one
+     * instance uses {@code spawn.multi.default-spread}; points never coincide and follow safe ground when
+     * {@code spawn.multi.safe-ground} is enabled.
+     */
+    public List<Location> spreadLocations(Location center, int count, double spread) {
+        int n = Math.max(1, count);
+        double radius = n > 1 && spread <= 0 ? plugin.getSettings().spawnDefaultSpread : Math.max(0, spread);
+        return SpawnPattern.spread(center, n, radius, n > 1 ? plugin.getSettings().spawnMinSpacing : 0,
+                plugin.getSettings().spawnSafeGround);
+    }
+
+    /**
+     * Spawns several living rigs around a point (not capped: commands apply {@code spawn.multi.max-count}).
+     *
+     * @return the rigs that could be spawned
+     */
+    public List<ActiveRig> spawnRigs(Location center, EntityType type, String modelId, int count, double spread) {
+        List<ActiveRig> out = new ArrayList<>();
+        for (Location point : spreadLocations(center, count, spread)) {
+            ActiveRig rig = spawnRig(point, type, modelId);
+            if (rig != null) {
+                out.add(rig);
+            }
+        }
+        return out;
+    }
+
+    /**
+     * Places several static rigs around a point (not capped: commands apply {@code spawn.multi.max-count}).
+     *
+     * @return the rigs that could be placed
+     */
+    public List<ActiveRig> summonProps(Location center, String modelId, int count, double spread, boolean persistent) {
+        List<ActiveRig> out = new ArrayList<>();
+        for (Location point : spreadLocations(center, count, spread)) {
+            ActiveRig rig = summonProp(point, modelId, persistent);
+            if (rig != null) {
+                out.add(rig);
+            }
+        }
+        return out;
+    }
+
     /** Summons a static prop: the base is an Interaction sized like the model hitbox (/radiant summon). */
     public ActiveRig summonProp(Location location, String modelId) {
         return summonProp(location, modelId, true);
