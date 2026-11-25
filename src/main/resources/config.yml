@@ -262,8 +262,36 @@ gui:
   use-model-icons: true
   preview-seconds: 10
 
+update-checker:
+  # Comprueba de forma asincrona (timeout de 5 s) si hay una version nueva. Cualquier error se ignora en silencio.
+  enabled: true
+  # "github" (GitHub Releases) o "spigot" (SpigotMC mediante la API de Spiget)
+  source: "github"
+  # Repositorio consultado en https://api.github.com/repos/<repo>/releases/latest (se lee tag_name y html_url)
+  github-repo: "TTVPrivalo21/RadiantEngine"
+  # Pagina de autor usada como enlace cuando la fuente es spigot y no hay pagina de recurso
+  spigot-author-url: "https://www.spigotmc.org/resources/authors/thekillerv2.1619961/"
+  # ID del recurso en SpigotMC (0 = desactivado). Con source: "spigot" se consulta
+  # https://api.spiget.org/v2/resources/<id>/versions/latest
+  spigot-resource-id: 0
+  # Avisar con un enlace clickeable a los jugadores con radiantengine.admin al entrar
+  notify-admins-on-join: true
+
 messages:
   prefix: "<gradient:#00E5FF:#3B82F6><bold>RadiantEngine</bold></gradient> <dark_gray>»</dark_gray> <gray>"
+  # ── Versiones y actualizaciones ──
+  version-first-install: "<green>RadiantEngine <white>{version}</white> instalado por primera vez. <gray>¡Gracias por usarlo!"
+  version-changed: "<aqua>Version actualizada: <white>{old}</white> <dark_gray>-></dark_gray> <green>{new}</green>"
+  update-console:
+    - "<dark_gray><strikethrough>                                                  </strikethrough>"
+    - "{prefix}<aqua><bold>¡Hay una nueva version disponible!</bold>"
+    - "{prefix}<gray>Version actual: <red>{current}</red>"
+    - "{prefix}<gray>Nueva version: <green>{latest}</green>"
+    - "{prefix}<gray>Descarga: <aqua>{url}</aqua>"
+    - "<dark_gray><strikethrough>                                                  </strikethrough>"
+  update-join: "<gray>Nueva version disponible: <red>{current}</red> <dark_gray>→</dark_gray> <green>{latest}</green>"
+  update-join-link: "<aqua><underlined>Haz clic aqui para descargarla</underlined></aqua> <dark_gray>»</dark_gray>"
+  update-join-hover: "<gray>Abrir <aqua>{url}</aqua>"
   no-permission: "<red>No tienes permiso para hacer eso."
   players-only: "<red>Este comando solo puede usarlo un jugador."
   unknown-subcommand: "<red>Subcomando desconocido. Usa <white>/{label} help</white>."

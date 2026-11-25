@@ -39,6 +39,7 @@ Models are loaded directly from `.bbmodel` files, preserving their bone hierarch
 - **Custom branding:** Your own `logo.png` is used for the pack icon, menu header and menu logo item.
 - **Integrations:** Oraxen, MythicMobs, Citizens, FancyNpcs, ZNPCsPlus, WorldGuard, PlaceholderAPI, Floodgate and Geyser.
 - **MiniMessage:** Configurable messages and formatting.
+- **Update checker:** Asynchronous GitHub Releases / SpigotMC check with a clickable admin notice, plus a console notice when the installed version changes.
 
 ## Installation
 
@@ -508,6 +509,44 @@ Available API events:
 - `RigAttachEvent`
 - `RigAnimationStartEvent` (cancellable)
 - `RigAnimationEndEvent`
+
+## Updates and Version Notices
+
+### Version change notice
+
+RadiantEngine stores the last version that ran in `plugins/RadiantEngine/.last-version`. On startup:
+
+- if the file does not exist, the console shows a first-install message;
+- if the stored version is different, the console shows `old -> new` (for example `1.0.0 -> 1.1.0`);
+- the file is then updated with the running version.
+
+The texts are `messages.version-first-install` and `messages.version-changed` in `config.yml`.
+
+### Update checker
+
+The update checker runs fully asynchronously (Java `HttpClient`, 5 second timeout) and never blocks the server.
+If anything fails (no internet, private repository, 404, rate limit), it stays silent: no warnings and no stack traces.
+
+```yaml
+update-checker:
+  enabled: true
+  # "github" (GitHub Releases) or "spigot" (SpigotMC through the Spiget API)
+  source: "github"
+  # Queried at https://api.github.com/repos/<repo>/releases/latest (tag_name + html_url)
+  github-repo: "TTVPrivalo21/RadiantEngine"
+  spigot-author-url: "https://www.spigotmc.org/resources/authors/thekillerv2.1619961/"
+  # With source: "spigot" and an id > 0, https://api.spiget.org/v2/resources/<id>/versions/latest is queried
+  spigot-resource-id: 0
+  # Clickable download link for players with radiantengine.admin when they join
+  notify-admins-on-join: true
+```
+
+- A leading `v` in tags is ignored (`v1.2.0` = `1.2.0`), and versions are compared semantically (`1.10.0` > `1.9.3`, `1.2.0` > `1.2.0-SNAPSHOT`).
+- When a newer version exists, the console prints a block with the current version, the new version and the download link.
+- Admins get a short clickable message on join (Paper: MiniMessage click/hover; Spigot: a clickable chat component).
+- Configs from older versions work unchanged: the missing `update-checker` keys and messages are added automatically with these defaults.
+
+The texts are `messages.update-console`, `messages.update-join`, `messages.update-join-link` and `messages.update-join-hover`.
 
 ## Resource Pack Troubleshooting
 

@@ -23,6 +23,8 @@ import dev.privalo.radiantengine.model.RigManager;
 import dev.privalo.radiantengine.mount.MountManager;
 import dev.privalo.radiantengine.npc.NpcManager;
 import dev.privalo.radiantengine.text.Lang;
+import dev.privalo.radiantengine.update.UpdateChecker;
+import dev.privalo.radiantengine.update.VersionTracker;
 import dev.privalo.radiantengine.util.EntityCompat;
 import dev.privalo.radiantengine.util.Keys;
 import org.bukkit.Bukkit;
@@ -64,6 +66,7 @@ public final class RadiantEngine extends JavaPlugin {
     private BedrockSupport bedrock;
     private PetManager petManager;
     private CosmeticManager cosmeticManager;
+    private UpdateChecker updateChecker;
     private volatile boolean reloading;
     private volatile boolean guiTextureReady;
 
@@ -80,6 +83,7 @@ public final class RadiantEngine extends JavaPlugin {
         this.settings = new Settings(getConfig());
         this.lang = new Lang();
         lang.reload(getConfig());
+        VersionTracker.track(getDataFolder(), getDescription().getVersion(), lang, Bukkit.getConsoleSender(), getLogger());
         this.keys = new Keys(this);
         this.registry = new BlueprintRegistry();
         this.packGenerator = new ResourcePackGenerator(getDataFolder());
@@ -138,10 +142,17 @@ public final class RadiantEngine extends JavaPlugin {
 
         rigManager.start();
         reloadModels(null, ReloadMode.MODELS);
+
+        this.updateChecker = new UpdateChecker(this);
+        Bukkit.getPluginManager().registerEvents(updateChecker, this);
+        updateChecker.checkAsync();
     }
 
     @Override
     public void onDisable() {
+        if (updateChecker != null) {
+            updateChecker.shutdown();
+        }
         if (cosmeticManager != null) {
             cosmeticManager.shutdown();
         }
@@ -356,6 +367,10 @@ public final class RadiantEngine extends JavaPlugin {
 
     public CosmeticManager getCosmeticManager() {
         return cosmeticManager;
+    }
+
+    public UpdateChecker getUpdateChecker() {
+        return updateChecker;
     }
 
     /** True for rig bases owned by holograms, pets or cosmetics (not affected by kill/remove). */
